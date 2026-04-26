@@ -42,11 +42,12 @@ export default function LandingPage() {
                         </a>
                     </div>
 
-                    <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center lg:justify-start space-x-8 opacity-50 grayscale">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_Web_Services_Logo.svg" alt="AWS" className="h-6" />
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Microsoft_Azure_Logo.svg" alt="Azure" className="h-6" />
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Google_Cloud_Logo.svg" alt="GCP" className="h-6" />
+                    <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center lg:justify-start space-x-8 opacity-40 grayscale hover:grayscale-0 transition-all">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg" alt="AWS" className="h-7" />
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Microsoft_Azure.svg" alt="Azure" className="h-7" />
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/Google_Cloud_Platform_Logo.svg" alt="GCP" className="h-7" />
                     </div>
+
                 </div>
 
                 <div className="flex-1 relative">

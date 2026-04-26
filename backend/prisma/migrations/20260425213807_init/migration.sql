@@ -28,9 +28,16 @@ CREATE TYPE "EstadoComando" AS ENUM ('PENDIENTE', 'ENVIADO', 'EJECUTADO', 'ERROR
 -- CreateEnum
 CREATE TYPE "Plataforma" AS ENUM ('ANDROID');
 
+-- CreateEnum
+CREATE TYPE "TipoPlan" AS ENUM ('BASICO', 'PROFESIONAL', 'EMPRESARIAL');
+
+-- CreateEnum
+CREATE TYPE "TipoHistorialTenant" AS ENUM ('ACTIVACION', 'DESACTIVACION', 'CAMBIO_PLAN');
+
 -- CreateTable
 CREATE TABLE "Tenant" (
     "id" SERIAL NOT NULL,
+    "planId" INTEGER,
     "nombre" TEXT NOT NULL,
     "estado" "Estado" NOT NULL DEFAULT 'ACTIVO',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -42,7 +49,7 @@ CREATE TABLE "Tenant" (
 -- CreateTable
 CREATE TABLE "Usuario" (
     "id" SERIAL NOT NULL,
-    "tenantId" INTEGER NOT NULL,
+    "tenantId" INTEGER,
     "nombre" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
@@ -151,14 +158,51 @@ CREATE TABLE "DispositivoMovil" (
     CONSTRAINT "DispositivoMovil_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Plan" (
+    "id" SERIAL NOT NULL,
+    "nombre" "TipoPlan" NOT NULL,
+    "descripcion" TEXT,
+    "estado" "Estado" NOT NULL DEFAULT 'ACTIVO',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Plan_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "HistorialTenant" (
+    "id" SERIAL NOT NULL,
+    "tenantId" INTEGER NOT NULL,
+    "usuarioId" INTEGER,
+    "tipo" "TipoHistorialTenant" NOT NULL,
+    "estadoAntes" "Estado",
+    "estadoNuevo" "Estado",
+    "planAntesId" INTEGER,
+    "planNuevoId" INTEGER,
+    "nota" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "HistorialTenant_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Tenant_nombre_key" ON "Tenant"("nombre");
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Usuario_email_key" ON "Usuario"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Dispositivo_azureDeviceId_key" ON "Dispositivo"("azureDeviceId");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "Plan_nombre_key" ON "Plan"("nombre");
+
 -- AddForeignKey
-ALTER TABLE "Usuario" ADD CONSTRAINT "Usuario_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Tenant" ADD CONSTRAINT "Tenant_planId_fkey" FOREIGN KEY ("planId") REFERENCES "Plan"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Usuario" ADD CONSTRAINT "Usuario_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Recinto" ADD CONSTRAINT "Recinto_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -183,3 +227,15 @@ ALTER TABLE "Comando" ADD CONSTRAINT "Comando_usuarioId_fkey" FOREIGN KEY ("usua
 
 -- AddForeignKey
 ALTER TABLE "DispositivoMovil" ADD CONSTRAINT "DispositivoMovil_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "Usuario"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "HistorialTenant" ADD CONSTRAINT "HistorialTenant_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "HistorialTenant" ADD CONSTRAINT "HistorialTenant_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "Usuario"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "HistorialTenant" ADD CONSTRAINT "HistorialTenant_planAntesId_fkey" FOREIGN KEY ("planAntesId") REFERENCES "Plan"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "HistorialTenant" ADD CONSTRAINT "HistorialTenant_planNuevoId_fkey" FOREIGN KEY ("planNuevoId") REFERENCES "Plan"("id") ON DELETE SET NULL ON UPDATE CASCADE;

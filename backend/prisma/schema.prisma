@@ -70,24 +70,39 @@ enum Plataforma {
   ANDROID
 }
 
+enum TipoPlan {
+  BASICO
+  PROFESIONAL
+  EMPRESARIAL
+}
+
+enum TipoHistorialTenant {
+  ACTIVACION
+  DESACTIVACION
+  CAMBIO_PLAN
+}
+
 //////////////////////////////////////////////////////
 // MODELOS
 //////////////////////////////////////////////////////
 
 model Tenant {
   id        Int      @id @default(autoincrement())
-  nombre    String
+  planId    Int?
+  nombre    String   @unique
   estado    Estado   @default(ACTIVO)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  plan      Plan?     @relation(fields: [planId], references: [id])
   usuarios  Usuario[]
   recintos  Recinto[]
+  historial HistorialTenant[]
 }
 
 model Usuario {
   id           Int      @id @default(autoincrement())
-  tenantId     Int
+  tenantId     Int?
   nombre       String
   email        String   @unique
   passwordHash String
@@ -96,9 +111,10 @@ model Usuario {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
-  comandos     Comando[]
+  tenant           Tenant?  @relation(fields: [tenantId], references: [id])
+  comandos         Comando[]
   dispositivosMovil DispositivoMovil[]
+  historialTenants HistorialTenant[]
 }
 
 model Recinto {
@@ -196,3 +212,34 @@ model DispositivoMovil {
 
   usuario      Usuario @relation(fields: [usuarioId], references: [id])
 }
+
+model Plan {
+  id          Int      @id @default(autoincrement())
+  nombre      TipoPlan @unique
+  descripcion String?
+  estado      Estado   @default(ACTIVO)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenants        Tenant[]
+  historialAntes HistorialTenant[] @relation("PlanAntes")
+  historialNuevo HistorialTenant[] @relation("PlanNuevo")
+}
+
+model HistorialTenant {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int
+  usuarioId   Int?
+  tipo        TipoHistorialTenant
+  estadoAntes Estado?
+  estadoNuevo Estado?
+  planAntesId Int?
+  planNuevoId Int?
+  nota        String
+  createdAt   DateTime @default(now())
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  usuario     Usuario? @relation(fields: [usuarioId], references: [id])
+  planAntes   Plan?    @relation("PlanAntes", fields: [planAntesId], references: [id])
+  planNuevo   Plan?    @relation("PlanNuevo", fields: [planNuevoId], references: [id])
+}
