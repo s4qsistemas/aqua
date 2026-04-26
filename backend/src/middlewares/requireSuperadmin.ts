@@ -1,19 +1,18 @@
 import { Request, Response, NextFunction } from "express";
 
-export function requireSuperadmin(
-    req: Request,
-    res: Response,
-    next: NextFunction
-) {
-    const usuario = (req as any).user;
+export const requireSuperadmin = (req: Request, res: Response, next: NextFunction): void => {
+    // ¡Adiós al (req as any)! Ahora TypeScript autocompleta req.user
+    const usuario = req.user;
 
     if (!usuario) {
-        return res.status(401).json({ message: "No autenticado" });
+        res.status(401).json({ message: "No autenticado" });
+        return;
     }
 
     if (usuario.rol !== "SUPERADMIN") {
-        return res.status(403).json({ message: "Acceso solo para superadmin" });
+        res.status(403).json({ message: "Acceso solo para superadmin" });
+        return;
     }
 
     next();
-}
+};

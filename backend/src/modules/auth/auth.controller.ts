@@ -3,7 +3,13 @@ import prisma from "../../lib/prisma";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "super_secret_key_123";
+// Validamos estrictamente la variable de entorno
+if (!process.env.JWT_SECRET) {
+    console.error("FATAL ERROR: JWT_SECRET no está definido en el archivo .env.");
+    process.exit(1);
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export const login = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -38,8 +44,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
         // Generar JWT
         const token = jwt.sign(
-            { 
-                id: usuario.id, 
+            {
+                id: usuario.id,
                 rol: usuario.rol,
                 tenantId: usuario.tenantId
             },
@@ -63,8 +69,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
 export const getMe = async (req: Request, res: Response): Promise<void> => {
     try {
-        // El userId vendrá del middleware de autenticación
-        const userId = (req as any).user?.id;
+        // Ahora usamos nuestro tipado seguro (sin "any")
+        const userId = req.user?.id;
 
         if (!userId) {
             res.status(401).json({ error: "No autenticado" });

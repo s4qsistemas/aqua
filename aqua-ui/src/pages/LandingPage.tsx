@@ -27,7 +27,7 @@ export default function LandingPage() {
                     </h1>
 
                     <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mb-10 mx-auto lg:mx-0 leading-relaxed">
-                        hidroControl transforma la gestión de agua con monitoreo en tiempo real, 
+                        hidroControl transforma la gestión de agua con monitoreo en tiempo real,
                         analítica avanzada y control remoto seguro para estaciones, sensores y bombas.
                     </p>
 
@@ -42,11 +42,17 @@ export default function LandingPage() {
                         </a>
                     </div>
 
-                    <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center lg:justify-start space-x-8 opacity-40 grayscale hover:grayscale-0 transition-all">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg" alt="AWS" className="h-7" />
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Microsoft_Azure.svg" alt="Azure" className="h-7" />
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/Google_Cloud_Platform_Logo.svg" alt="GCP" className="h-7" />
+                    <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center lg:justify-start space-x-12 opacity-80 hover:opacity-100 transition-all">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Microsoft_Azure.svg" alt="Azure" className="h-9" />
+                        <img src="/img/azure-iot-hub-450.png" alt="IoT Hub" className="h-12" title="Azure IoT Hub" />
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/d/d9/Node.js_logo.svg" alt="Node.js" className="h-8" title="Node.js Runtime" />
+                        <img src="/img/postgrsql.png" alt="PostgreSQL" className="h-12" title="PostgreSQL Database" />
                     </div>
+
+
+
+
+
 
                 </div>
 
@@ -54,9 +60,9 @@ export default function LandingPage() {
                     <div className="relative z-10 animate-float">
                         <div className="bg-gradient-to-tr from-blue-600 to-teal-400 p-1 rounded-[2.5rem] shadow-2xl">
                             <div className="bg-slate-900 rounded-[2.3rem] overflow-hidden">
-                                <img 
-                                    src="https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&q=80&w=1000" 
-                                    alt="Dashboard Preview" 
+                                <img
+                                    src="https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&q=80&w=1000"
+                                    alt="Dashboard Preview"
                                     className="w-full h-auto opacity-80"
                                 />
                             </div>
@@ -69,4 +75,4 @@ export default function LandingPage() {
             </section>
         </div>
     );
-}
+}

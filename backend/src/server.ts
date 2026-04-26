@@ -11,11 +11,15 @@ const io = new Server(server, {
     }
 });
 
-// @ts-ignore
-global.io = io;
+// NUEVO: Inyectamos Socket.io dentro de Express en lugar de usar variables globales
+app.set("io", io);
 
 io.on("connection", (socket) => {
     console.log("Cliente conectado:", socket.id);
+
+    socket.on("disconnect", () => {
+        console.log("Cliente desconectado:", socket.id);
+    });
 });
 
 const PORT = process.env.PORT || 3000;
