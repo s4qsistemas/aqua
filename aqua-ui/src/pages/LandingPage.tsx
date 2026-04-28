@@ -48,12 +48,6 @@ export default function LandingPage() {
                         <img src="https://upload.wikimedia.org/wikipedia/commons/d/d9/Node.js_logo.svg" alt="Node.js" className="h-8" title="Node.js Runtime" />
                         <img src="/img/postgrsql.png" alt="PostgreSQL" className="h-12" title="PostgreSQL Database" />
                     </div>
-
-
-
-
-
-
                 </div>
 
                 <div className="flex-1 relative">

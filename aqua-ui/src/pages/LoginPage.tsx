@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
-
-const API_BASE_URL = "http://localhost:3000/api";
+import { apiFetch } from "../services/api";
 
 export default function LoginPage() {
     const navigate = useNavigate();
@@ -20,24 +19,15 @@ export default function LoginPage() {
     }, [isAuthenticated, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
-
         e.preventDefault();
         setLoading(true);
         setError("");
         
         try {
-            const response = await fetch(`${API_BASE_URL}/auth/login`, {
-
+            const data = await apiFetch(`/auth/login`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email: user, password }),
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || "Error al iniciar sesión");
-            }
 
             login(data.token, data.user);
             navigate("/dashboard");
