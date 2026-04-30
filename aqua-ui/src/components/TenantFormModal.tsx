@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { IconClose, IconBuilding } from "./Icons";
 
 export default function TenantFormModal({ isOpen, onClose, onConfirm, initialData, plans }: any) {
   const [nombre, setNombre] = useState("");
@@ -23,25 +24,23 @@ export default function TenantFormModal({ isOpen, onClose, onConfirm, initialDat
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" 
+      <div
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
         onClick={onClose}
       ></div>
 
       {/* Modal Content */}
       <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 shadow-2xl border border-white/20 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-8 right-8 w-10 h-10 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all group"
         >
-          <span className="material-symbols-outlined text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">close</span>
+          <IconClose className="w-6 h-6 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
         </button>
 
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
+            <IconBuilding className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           </div>
           <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
             {isEditing ? "Editar Comunidad" : "Nueva Comunidad"}
@@ -83,7 +82,7 @@ export default function TenantFormModal({ isOpen, onClose, onConfirm, initialDat
 
 
           <div className="flex gap-3 pt-4">
-            <button 
+            <button
               onClick={onClose}
               className="flex-1 px-6 py-4 rounded-2xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >

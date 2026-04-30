@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { IconClose, IconWarning } from "./Icons";
 
 export default function TenantStatusModal({ isOpen, onClose, onConfirm }: any) {
   const [nota, setNota] = useState("");
@@ -14,25 +15,23 @@ export default function TenantStatusModal({ isOpen, onClose, onConfirm }: any) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" 
+      <div
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
         onClick={onClose}
       ></div>
 
       {/* Modal Content */}
       <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2rem] p-8 shadow-2xl border border-white/20 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all group"
         >
-          <span className="material-symbols-outlined text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">close</span>
+          <IconClose className="w-6 h-6 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
         </button>
 
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+            <IconWarning className="w-8 h-8 text-red-600 dark:text-red-400" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Confirmar Acción</h2>
           <p className="text-slate-500 dark:text-slate-400 mt-1">
@@ -51,7 +50,7 @@ export default function TenantStatusModal({ isOpen, onClose, onConfirm }: any) {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button 
+            <button
               onClick={onClose}
               className="flex-1 px-6 py-4 rounded-2xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >

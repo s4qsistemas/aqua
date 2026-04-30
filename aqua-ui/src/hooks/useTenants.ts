@@ -10,12 +10,16 @@ export function useTenants() {
     const [planes, setPlanes] = useState<any[]>([]);
     const [historial, setHistorial] = useState<any[]>([]);
     const [selectedTenant, setSelectedTenant] = useState<any>(null);
+    const [selectedUser, setSelectedUser] = useState<any>(null);
 
     // Estados de UI (Modales)
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [showPlanModal, setShowPlanModal] = useState(false);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [showFormModal, setShowFormModal] = useState(false);
+    const [showUserModal, setShowUserModal] = useState(false);
+
+    const [isLoading, setIsLoading] = useState(true);
 
     // Fetch inicial
     useEffect(() => {
@@ -26,11 +30,14 @@ export function useTenants() {
     }, [isAuthenticated]);
 
     const fetchTenants = async () => {
+        setIsLoading(true); // Comienza la carga
         try {
-            const data = await apiFetch("/tenants");
+            const data = await apiFetch('/tenants');
             setTenants(data);
         } catch (error) {
-            console.error("Error al cargar comunidades:", error);
+            console.error("Error al cargar comunidades", error);
+        } finally {
+            setIsLoading(false); // Termina la carga pase lo que pase
         }
     };
 
@@ -55,6 +62,9 @@ export function useTenants() {
     // Handlers para abrir modales
     const onNew = () => { setSelectedTenant(null); setShowFormModal(true); };
 
+    const onNewUser = () => { setSelectedUser(null); setShowUserModal(true); };
+    const onEditUser = (user: any) => { setSelectedUser(user); setShowUserModal(true); };
+
     const onEdit = (t: any) => {
         if (t.estado === "INACTIVO") {
             alert("No se puede editar una comunidad inactiva.");
@@ -63,7 +73,6 @@ export function useTenants() {
         setSelectedTenant(t);
         setShowFormModal(true);
     };
-
     const onPlan = (t: any) => {
         if (t.estado === "INACTIVO") {
             alert("No se puede cambiar el plan de una comunidad inactiva.");
@@ -72,7 +81,6 @@ export function useTenants() {
         setSelectedTenant(t);
         setShowPlanModal(true);
     };
-
     const onStatus = (t: any) => { setSelectedTenant(t); setShowStatusModal(true); };
 
     const onHistory = async (t: any) => {
@@ -81,7 +89,7 @@ export function useTenants() {
         setShowHistoryModal(true);
     };
 
-    // Handlers para confirmar acciones (Llamadas a la API)
+    // Handlers para mutaciones
     const handleConfirmStatus = async (nota: string) => {
         const nuevoEstado = selectedTenant.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO";
         try {
@@ -123,14 +131,72 @@ export function useTenants() {
         }
     };
 
-    // Retornamos todo lo que el componente visual necesita
+    const handleConfirmUserForm = async (formData: any, userId?: number) => {
+        try {
+            if (userId) {
+                // MODO EDICIÓN
+                await apiFetch(`/usuarios/${userId}`, {
+                    method: "PUT",
+                    body: JSON.stringify(formData)
+                });
+                alert("Usuario actualizado correctamente.");
+            } else {
+                // MODO CREACIÓN
+                const response = await apiFetch(`/usuarios`, {
+                    method: "POST",
+                    body: JSON.stringify(formData)
+                });
+
+                // LA NOTIFICACIÓN INTELIGENTE (Muestra la clave que generó el backend)
+                alert(`¡Usuario creado exitosamente!\n\nEmail: ${response.email}\nContraseña Temporal: ${response.tempPassword}\n\nPor favor, entrega estas credenciales al nuevo usuario.`);
+            }
+
+            await fetchTenants();
+            setShowUserModal(false);
+        } catch (error: any) {
+            alert("Error: " + error.message);
+        }
+    };
+
+    const handleResetUserPassword = async (userId: number) => {
+        if (!confirm("¿Seguro que deseas resetear la contraseña? El usuario quedará bloqueado hasta que inicie sesión con la clave temporal y cree una nueva.")) return;
+
+        try {
+            const response = await apiFetch(`/usuarios/${userId}/reset-password`, {
+                method: "POST"
+            });
+
+            // LA NOTIFICACIÓN INTELIGENTE DEL RESETEO
+            alert(`Contraseña reseteada exitosamente.\n\nNueva Contraseña Temporal: ${response.tempPassword}\n\nEl usuario debe usar esta clave para ingresar.`);
+        } catch (error: any) {
+            alert("Error: " + error.message);
+        }
+    };
+
+    const handleToggleUserStatus = async (userId: number, nuevoEstado: string) => {
+        if (!confirm(`¿Estás seguro de cambiar el estado a ${nuevoEstado}?`)) return;
+
+        try {
+            await apiFetch(`/usuarios/${userId}/estado`, {
+                method: "PATCH",
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+            await fetchTenants();
+            setShowUserModal(false); // Cierra el modal para refrescar
+        } catch (error: any) {
+            alert("Error: " + error.message);
+        }
+    };
+
     return {
-        tenants, planes, historial, selectedTenant,
+        tenants, isLoading, planes, historial, selectedTenant,
         showStatusModal, setShowStatusModal,
         showPlanModal, setShowPlanModal,
         showHistoryModal, setShowHistoryModal,
+        selectedUser, onNewUser, onEditUser,
         showFormModal, setShowFormModal,
+        showUserModal, setShowUserModal,
         onNew, onEdit, onPlan, onStatus, onHistory,
-        handleConfirmStatus, handleConfirmPlan, handleConfirmForm
+        handleConfirmStatus, handleConfirmPlan, handleConfirmForm, handleConfirmUserForm, handleResetUserPassword, handleToggleUserStatus
     };
 }

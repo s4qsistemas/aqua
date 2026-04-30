@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface User {
@@ -12,8 +12,10 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (token: string, user: User) => void;
+  requirePasswordChange: boolean;
+  login: (token: string, user: User, requirePasswordChange: boolean) => void;
   logout: () => void;
+  resolvePasswordChange: () => void;
   isAuthenticated: boolean;
 }
 
@@ -25,22 +27,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem("user");
     return saved ? JSON.parse(saved) : null;
   });
+
+  // NUEVO: Estado para bloquear la navegación
+  const [requirePasswordChange, setRequirePasswordChange] = useState<boolean>(() => {
+    return localStorage.getItem("requirePasswordChange") === "true";
+  });
+
   const navigate = useNavigate();
 
-
-  const login = (newToken: string, newUser: User) => {
+  const login = (newToken: string, newUser: User, mustChangePass: boolean = false) => {
     setToken(newToken);
     setUser(newUser);
+    setRequirePasswordChange(mustChangePass);
+
     localStorage.setItem("token", newToken);
     localStorage.setItem("user", JSON.stringify(newUser));
+    localStorage.setItem("requirePasswordChange", String(mustChangePass));
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
+    setRequirePasswordChange(false);
+
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("requirePasswordChange");
     navigate("/login");
+  };
+
+  // Función para liberar al usuario una vez que cambia la clave
+  const resolvePasswordChange = () => {
+    setRequirePasswordChange(false);
+    localStorage.removeItem("requirePasswordChange");
+    navigate("/dashboard");
   };
 
   return (
@@ -48,8 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         token,
+        requirePasswordChange,
         login,
         logout,
+        resolvePasswordChange,
         isAuthenticated: !!token,
       }}
     >
