@@ -3,7 +3,12 @@ import { Estado } from "@prisma/client";
 
 export async function listarTenantsService() {
     return prisma.tenant.findMany({
-        include: { plan: true },
+        include: { 
+            plan: true,
+            usuarios: {
+                where: { rol: 'ADMIN' },
+            }
+        },
         orderBy: { createdAt: "desc" },
     });
 }

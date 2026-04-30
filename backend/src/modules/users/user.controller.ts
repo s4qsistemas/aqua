@@ -1,0 +1,42 @@
+import { Request, Response } from "express";
+import * as userService from "./user.service";
+
+export const registrarUsuario = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const usuarioCreado = await userService.crearUsuario(req.body);
+        res.status(201).json(usuarioCreado);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+export const actualizarUsuario = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const id = parseInt(req.params.id as string);
+        const usuarioActualizado = await userService.actualizarUsuario(id, req.body);
+        res.status(200).json(usuarioActualizado);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+export const toggleStatus = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const id = parseInt(req.params.id as string);
+        const { estado } = req.body;
+        const usuario = await userService.cambiarEstadoUsuario(id, estado);
+        res.status(200).json(usuario);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const id = parseInt(req.params.id as string);
+        const resultado = await userService.resetearPasswordUsuario(id);
+        res.status(200).json(resultado);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+};
