@@ -49,8 +49,8 @@ export async function obtenerTenant(req: Request, res: Response) {
 
 export async function actualizarTenant(req: Request, res: Response) {
     try {
-        const { nombre, planId } = req.body;
-        const tenant = await actualizarTenantService(Number(req.params.id), nombre, planId);
+        const { nombre, planId, adminId } = req.body;
+        const tenant = await actualizarTenantService(Number(req.params.id), nombre, planId, adminId);
         res.json(tenant);
     } catch (error) {
         res.status(500).json({ message: "Error al actualizar la comunidad" });

@@ -22,7 +22,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
         const usuario = await prisma.usuario.findUnique({
             where: { email },
-            include: { tenant: true }
+            include: { 
+                tenant: {
+                    include: { plan: true }
+                } 
+            }
         });
 
         if (!usuario) {
@@ -120,7 +124,11 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
 
         const usuario = await prisma.usuario.findUnique({
             where: { id: userId },
-            include: { tenant: true }
+            include: { 
+                tenant: {
+                    include: { plan: true }
+                }
+            }
         });
 
         if (!usuario) {

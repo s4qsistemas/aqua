@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { IconClose, IconBuilding } from "./Icons";
 
 export default function TenantFormModal({ isOpen, onClose, onConfirm, initialData, plans }: any) {
   const [nombre, setNombre] = useState("");
   const [planId, setPlanId] = useState("");
+  const [adminId, setAdminId] = useState("");
+  const [isSelectAdminOpen, setIsSelectAdminOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isEditing = !!initialData;
 
@@ -12,12 +15,29 @@ export default function TenantFormModal({ isOpen, onClose, onConfirm, initialDat
       if (initialData) {
         setNombre(initialData.nombre || "");
         setPlanId(initialData.planId || "");
+        if (initialData.usuarios && initialData.usuarios.length > 0) {
+          setAdminId(initialData.usuarios[0].id);
+        } else {
+          setAdminId("");
+        }
       } else {
         setNombre("");
         setPlanId("");
+        setAdminId("");
       }
+      setIsSelectAdminOpen(false);
     }
   }, [isOpen, initialData]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsSelectAdminOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -66,19 +86,89 @@ export default function TenantFormModal({ isOpen, onClose, onConfirm, initialDat
             <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">
               {isEditing ? "Plan" : "Plan inicial"}
             </label>
-            <select
-              className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none text-slate-800 dark:text-white"
-              onChange={(e) => setPlanId(e.target.value)}
-              value={planId}
-            >
-              <option value="">Seleccione un plan...</option>
-              {plans.map((p: any) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
-                </option>
-              ))}
-            </select>
+            {isEditing ? (
+              <input
+                type="text"
+                disabled
+                className="w-full p-4 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-500 dark:text-slate-400 cursor-not-allowed font-medium outline-none"
+                value={plans?.find((p: any) => p.id === planId)?.nombre || "Plan no encontrado"}
+              />
+            ) : (
+              <select
+                className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none text-slate-800 dark:text-white"
+                onChange={(e) => setPlanId(e.target.value)}
+                value={planId}
+              >
+                <option value="">Seleccione un plan...</option>
+                {plans?.map((p: any) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
+
+          {isEditing && initialData?.usuarios && (
+            <div className="space-y-2 relative" ref={dropdownRef}>
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Administrador</label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsSelectAdminOpen(!isSelectAdminOpen)}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-left flex justify-between items-center"
+                >
+                  {adminId ? (
+                    <div className="flex flex-col w-full">
+                      <div className="flex items-center gap-2">
+                        <span className={`font-semibold text-sm leading-tight ${initialData.usuarios.find((u: any) => u.id === adminId)?.estado === 'INACTIVO' ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200'}`}>
+                          {initialData.usuarios.find((u: any) => u.id === adminId)?.nombre}
+                        </span>
+                        {initialData.usuarios.find((u: any) => u.id === adminId)?.estado === 'INACTIVO' && (
+                          <span className="text-[10px] font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded border border-red-100 dark:border-red-900/50">
+                            DESACTIVADO
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {initialData.usuarios.find((u: any) => u.id === adminId)?.email}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-slate-500 py-1">Seleccione un administrador</span>
+                  )}
+                  <svg className={`w-5 h-5 text-slate-400 transition-transform ${isSelectAdminOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+
+                {isSelectAdminOpen && (
+                  <div className="absolute z-10 w-full bottom-full mb-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden max-h-48 overflow-y-auto animate-in slide-in-from-bottom-2 duration-200">
+                    {initialData.usuarios.length > 0 ? initialData.usuarios.map((u: any) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => { setAdminId(u.id); setIsSelectAdminOpen(false); }}
+                        className="w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex flex-col border-b border-slate-100 dark:border-slate-700/50 last:border-0"
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className={`font-semibold text-sm leading-tight ${u.estado === 'INACTIVO' ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200'}`}>
+                            {u.nombre}
+                          </span>
+                          {u.estado === 'INACTIVO' && (
+                            <span className="text-[10px] font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded border border-red-100 dark:border-red-900/50">
+                              DESACTIVADO
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{u.email}</span>
+                      </button>
+                    )) : (
+                      <div className="p-4 text-center text-sm text-slate-500">No hay administradores registrados</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
 
           <div className="flex gap-3 pt-4">
@@ -91,7 +181,7 @@ export default function TenantFormModal({ isOpen, onClose, onConfirm, initialDat
             <button
               disabled={!nombre.trim() || (!isEditing && !planId)}
               className="flex-1 bg-blue-600 text-white px-6 py-4 rounded-2xl font-bold shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:hover:scale-100"
-              onClick={() => onConfirm({ nombre, planId })}
+              onClick={() => onConfirm({ nombre, planId, adminId })}
             >
               Guardar
             </button>

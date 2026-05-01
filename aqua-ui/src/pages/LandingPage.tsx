@@ -27,7 +27,7 @@ export default function LandingPage() {
                     </h1>
 
                     <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mb-10 mx-auto lg:mx-0 leading-relaxed">
-                        hidroControl transforma la gestión de agua con monitoreo en tiempo real,
+                        aquaSync transforma la gestión de agua con monitoreo en tiempo real,
                         analítica avanzada y control remoto seguro para estaciones, sensores y bombas.
                     </p>
 

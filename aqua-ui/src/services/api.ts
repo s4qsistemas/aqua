@@ -21,7 +21,8 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
         });
 
         // 4. Interceptar errores de Autenticación (401 o 403) de forma global
-        if (response.status === 401 || response.status === 403) {
+        // Evitamos interceptar en la ruta de login para poder mostrar los errores reales al usuario
+        if ((response.status === 401 || response.status === 403) && !endpoint.includes('/auth/login')) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
             window.location.href = "/login"; // Fuerza la redirección y limpia el estado de la SPA

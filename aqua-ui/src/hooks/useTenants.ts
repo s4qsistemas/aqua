@@ -20,6 +20,7 @@ export function useTenants() {
     const [showUserModal, setShowUserModal] = useState(false);
 
     const [isLoading, setIsLoading] = useState(true);
+    const [credentialsAlert, setCredentialsAlert] = useState<{ email?: string, tempPassword?: string, title: string, message: string } | null>(null);
 
     // Fetch inicial
     useEffect(() => {
@@ -148,7 +149,12 @@ export function useTenants() {
                 });
 
                 // LA NOTIFICACIÓN INTELIGENTE (Muestra la clave que generó el backend)
-                alert(`¡Usuario creado exitosamente!\n\nEmail: ${response.email}\nContraseña Temporal: ${response.tempPassword}\n\nPor favor, entrega estas credenciales al nuevo usuario.`);
+                setCredentialsAlert({
+                    title: "¡Usuario creado exitosamente!",
+                    message: "Por favor, entrega estas credenciales al nuevo usuario.",
+                    email: response.email,
+                    tempPassword: response.tempPassword
+                });
             }
 
             await fetchTenants();
@@ -167,7 +173,11 @@ export function useTenants() {
             });
 
             // LA NOTIFICACIÓN INTELIGENTE DEL RESETEO
-            alert(`Contraseña reseteada exitosamente.\n\nNueva Contraseña Temporal: ${response.tempPassword}\n\nEl usuario debe usar esta clave para ingresar.`);
+            setCredentialsAlert({
+                title: "Contraseña reseteada exitosamente.",
+                message: "El usuario debe usar esta clave para ingresar.",
+                tempPassword: response.tempPassword
+            });
         } catch (error: any) {
             alert("Error: " + error.message);
         }
@@ -197,6 +207,7 @@ export function useTenants() {
         showFormModal, setShowFormModal,
         showUserModal, setShowUserModal,
         onNew, onEdit, onPlan, onStatus, onHistory,
-        handleConfirmStatus, handleConfirmPlan, handleConfirmForm, handleConfirmUserForm, handleResetUserPassword, handleToggleUserStatus
+        handleConfirmStatus, handleConfirmPlan, handleConfirmForm, handleConfirmUserForm, handleResetUserPassword, handleToggleUserStatus,
+        credentialsAlert, setCredentialsAlert
     };
 }

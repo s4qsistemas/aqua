@@ -7,6 +7,15 @@ interface User {
   email: string;
   rol: string;
   tenantId?: number | null;
+  tenant?: {
+    id: number;
+    nombre: string;
+    estado: string;
+    plan?: {
+      id: number;
+      nombre: string;
+    } | null;
+  } | null;
 }
 
 interface AuthContextType {
@@ -60,7 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resolvePasswordChange = () => {
     setRequirePasswordChange(false);
     localStorage.removeItem("requirePasswordChange");
-    navigate("/dashboard");
+    if (user?.rol === 'SUPERADMIN') {
+      navigate("/dashboard");
+    } else {
+      navigate("/admin-dashboard");
+    }
   };
 
   return (

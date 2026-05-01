@@ -1,10 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#2dd4bf;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <rect width="32" height="32" rx="8" fill="url(#grad)" />
-  <path transform="translate(4, 4)" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Fondo circular azul marino profundo -->
+  <circle cx="50" cy="50" r="50" fill="#0f172a" />
+  
+  <!-- Gota/Círculo superior celeste -->
+  <circle cx="50" cy="30" r="7" fill="#38bdf8" />
+  
+  <!-- Ondas estilizadas de aguaSync -->
+  <!-- Onda superior (Celeste) -->
+  <path d="M25 48 C 35 38, 65 58, 75 48" fill="none" stroke="#38bdf8" stroke-width="6" stroke-linecap="round" />
+  
+  <!-- Onda media (Teal/Turquesa) -->
+  <path d="M25 62 C 35 52, 65 72, 75 62" fill="none" stroke="#14b8a6" stroke-width="6" stroke-linecap="round" />
+  
+  <!-- Onda inferior (Verde oscuro/Teal) -->
+  <path d="M25 76 C 35 66, 65 86, 75 76" fill="none" stroke="#0d9488" stroke-width="6" stroke-linecap="round" />
 </svg>

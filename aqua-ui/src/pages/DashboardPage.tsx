@@ -4,6 +4,7 @@ import TenantPlanModal from "../components/TenantPlanModal";
 import TenantHistoryModal from "../components/TenantHistoryModal";
 import TenantFormModal from "../components/TenantFormModal";
 import UsersFormModal from "../components/UsersFormModal";
+import CredentialsAlertModal from "../components/CredentialsAlertModal";
 import { useAuth } from "../context/AuthContext";
 import { useTenants } from "../hooks/useTenants";
 import { TableSkeleton } from '../components/TableSkeleton';
@@ -23,7 +24,10 @@ export default function DashboardPage() {
     showFormModal, setShowFormModal,
     showUserModal, setShowUserModal,
     onNew, onEdit, onPlan, onStatus, onHistory,
-    handleConfirmStatus, handleConfirmPlan, handleConfirmForm, handleConfirmUserForm, handleResetUserPassword, handleToggleUserStatus
+    handleConfirmStatus, handleConfirmPlan,
+    handleConfirmForm, handleConfirmUserForm,
+    handleResetUserPassword, handleToggleUserStatus,
+    credentialsAlert, setCredentialsAlert
   } = useTenants();
 
   return (
@@ -88,14 +92,24 @@ export default function DashboardPage() {
                 tenants.map((t) => (
                   <tr key={t.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
                     <td className="px-8 py-5">
-                      <span className="font-bold text-slate-800 dark:text-slate-200">{t.nombre}</span>
+                      <span className={`font-bold transition-all ${t.estado === 'INACTIVO' ? 'text-slate-400 dark:text-slate-500 opacity-60' : 'text-slate-800 dark:text-slate-200'}`}>
+                        {t.nombre}
+                      </span>
                     </td>
                     <td className="px-8 py-5">
                       {t.usuarios && t.usuarios.length > 0 ? (
                         <div className="flex items-center justify-between group">
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-slate-700 dark:text-slate-300 text-sm">{t.usuarios[0].nombre}</span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t.usuarios[0].email}</span>
+                          <div className="flex flex-col items-start">
+                            <span className={`font-semibold text-sm transition-all ${t.usuarios[0].estado === 'INACTIVO' ? 'text-slate-400 dark:text-slate-500 opacity-60' : 'text-slate-700 dark:text-slate-300'}`}>
+                              {t.usuarios[0].nombre}
+                            </span>
+                            {t.usuarios[0].estado === 'INACTIVO' ? (
+                              <span className="px-2 py-0.5 mt-0.5 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/50 text-red-500 dark:text-red-400 text-[10px] font-bold tracking-wider">
+                                DESACTIVADO
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t.usuarios[0].email}</span>
+                            )}
                           </div>
                           {isSuperAdmin && (
                             <button
@@ -158,15 +172,8 @@ export default function DashboardPage() {
       <TenantPlanModal isOpen={showPlanModal} onClose={() => setShowPlanModal(false)} plans={planes} onConfirm={handleConfirmPlan} />
       <TenantHistoryModal isOpen={showHistoryModal} onClose={() => setShowHistoryModal(false)} data={historial} />
       <TenantFormModal isOpen={showFormModal} onClose={() => setShowFormModal(false)} onConfirm={handleConfirmForm} initialData={selectedTenant} plans={planes} />
-      <UsersFormModal
-        isOpen={showUserModal}
-        onClose={() => setShowUserModal(false)}
-        onConfirm={handleConfirmUserForm}
-        tenants={tenants}
-        initialData={selectedUser}
-        onToggleStatus={handleToggleUserStatus}
-        onResetPassword={handleResetUserPassword}
-      />
+      <UsersFormModal isOpen={showUserModal} onClose={() => setShowUserModal(false)} onConfirm={handleConfirmUserForm} tenants={tenants} initialData={selectedUser} onToggleStatus={handleToggleUserStatus} onResetPassword={handleResetUserPassword} />
+      <CredentialsAlertModal isOpen={!!credentialsAlert} onClose={() => setCredentialsAlert(null)} data={credentialsAlert} />
     </div>
   );
 }

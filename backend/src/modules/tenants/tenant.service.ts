@@ -7,6 +7,10 @@ export async function listarTenantsService() {
             plan: true,
             usuarios: {
                 where: { rol: 'ADMIN' },
+                orderBy: [
+                    { isPrimary: 'desc' },
+                    { createdAt: 'asc' }
+                ]
             }
         },
         orderBy: { createdAt: "desc" },
@@ -29,13 +33,29 @@ export async function obtenerTenantService(id: number) {
     });
 }
 
-export async function actualizarTenantService(id: number, nombre: string, planId?: number) {
-    return prisma.tenant.update({
-        where: { id },
-        data: {
-            nombre,
-            planId: planId ? Number(planId) : undefined,
-        },
+export async function actualizarTenantService(id: number, nombre: string, planId?: number, adminId?: number | string) {
+    return prisma.$transaction(async (tx) => {
+        const updated = await tx.tenant.update({
+            where: { id },
+            data: {
+                nombre,
+                planId: planId ? Number(planId) : undefined,
+            },
+        });
+
+        if (adminId) {
+            await tx.usuario.updateMany({
+                where: { tenantId: id },
+                data: { isPrimary: false },
+            });
+
+            await tx.usuario.update({
+                where: { id: Number(adminId) },
+                data: { isPrimary: true },
+            });
+        }
+
+        return updated;
     });
 }
 
