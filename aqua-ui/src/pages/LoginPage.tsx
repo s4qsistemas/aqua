@@ -15,11 +15,11 @@ export default function LoginPage() {
     useEffect(() => {
         if (isAuthenticated) {
             // El useEffect de redirección solo se ejecuta si la página se carga ya autenticada.
-            // Para el flujo normal de login, la lógica está dentro de handleSubmit.
             if (requirePasswordChange) {
                 navigate("/force-change-password");
             } else {
-                navigate("/home"); // RootRedirect decidirá si va a dashboard o admin-dashboard
+                // Todos van al semáforo inteligente
+                navigate("/dashboard");
             }
         }
     }, [isAuthenticated, navigate, requirePasswordChange]);
@@ -37,13 +37,11 @@ export default function LoginPage() {
 
             login(data.token, data.user, data.requirePasswordChange);
 
-            // Redirección inteligente basada en el estado y rol
+            // Redirección directa al semáforo inteligente
             if (data.requirePasswordChange) {
                 navigate("/force-change-password");
-            } else if (data.user.rol === 'SUPERADMIN') {
-                navigate("/dashboard");
             } else {
-                navigate("/admin-dashboard");
+                navigate("/dashboard");
             }
         } catch (err: any) {
             setError(err.message);
@@ -147,4 +145,3 @@ export default function LoginPage() {
         </div>
     );
 }
-

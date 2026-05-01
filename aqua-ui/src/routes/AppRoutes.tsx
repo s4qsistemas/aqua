@@ -3,34 +3,46 @@ import LandingPage from "../pages/LandingPage";
 import LoginPage from "../pages/LoginPage";
 import DashboardPage from "../pages/DashboardPage";
 import AdminDashboardPage from "../pages/AdminDashboardPage";
+import SupervisorDashboardPage from "../pages/SupervisorDashboardPage";
 import ForceChangePassword from "../pages/ForceChangePassword";
-import ProtectedRoute from "../components/ProtectedRoute";
 import { AuthProvider, useAuth } from "../context/AuthContext";
-function RootRedirect() {
-    const { user, requirePasswordChange } = useAuth();
 
-    if (requirePasswordChange) return <Navigate to="/force-change-password" />;
+// Este es el verdadero Semáforo Inteligente e Infranqueable
+const RoleBasedDashboard = () => {
+    const { user, token, requirePasswordChange } = useAuth();
 
-    // Semáforo de roles
-    return user?.rol === 'SUPERADMIN'
-        ? <Navigate to="/dashboard" />
-        : <Navigate to="/admin-dashboard" />;
-}
+    // 1. Si no hay token, bloqueado al login
+    if (!token) return <Navigate to="/login" replace />;
+
+    // 2. Si tiene clave genérica, bloqueado a la trampa de seguridad
+    if (requirePasswordChange) return <Navigate to="/force-change-password" replace />;
+
+    // 3. Distribución estricta por Roles
+    if (user?.rol === 'SUPERADMIN') return <DashboardPage />;
+    if (user?.rol === 'ADMIN') return <AdminDashboardPage />;
+    if (user?.rol === 'SUPERVISOR') return <SupervisorDashboardPage />;
+
+    // Fallback de máxima seguridad: si el rol no coincide, lo expulsa
+    return <Navigate to="/login" replace />;
+};
 
 export default function AppRoutes() {
     return (
         <BrowserRouter>
             <AuthProvider>
                 <Routes>
+                    {/* Rutas Públicas */}
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/login" element={<LoginPage />} />
 
-                    <Route element={<ProtectedRoute />}>
-                        <Route path="/home" element={<RootRedirect />} />
-                        <Route path="/dashboard" element={<DashboardPage />} />
-                        <Route path="/admin-dashboard" element={<AdminDashboardPage />} />
-                        <Route path="/force-change-password" element={<ForceChangePassword />} />
-                    </Route>
+                    {/* Ruta de Seguridad Obligatoria */}
+                    <Route path="/force-change-password" element={<ForceChangePassword />} />
+
+                    {/* TODA la navegación privada pasa por el embudo de roles */}
+                    <Route path="/dashboard" element={<RoleBasedDashboard />} />
+
+                    {/* Redirección por defecto si escriben una URL que no existe */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </AuthProvider>
         </BrowserRouter>

@@ -27,7 +27,7 @@ export default function Navbar() {
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 px-8 py-4">
-            <div className="max-w-7xl mx-auto flex justify-between items-center bg-white/70 dark:bg-slate-900/70 backdrop-blur-lg border border-white/20 dark:border-slate-800/50 rounded-2xl px-6 py-3 shadow-xl">
+            <div className="max-w-7xl mx-auto flex justify-between items-center bg-slate-100/90 dark:bg-slate-900/70 backdrop-blur-lg border border-white/20 dark:border-slate-800/50 rounded-2xl px-6 py-3 shadow-xl">
                 <Link to="/" className="flex items-center hover:opacity-90 transition-opacity">
                     <img src={isDarkMode ? "/img/logoAquaSyncDark.png" : "/img/logoAquaSync.png"} alt="AquaSync Logo" className="h-10 w-auto object-contain drop-shadow-sm" />
                 </Link>

@@ -69,11 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resolvePasswordChange = () => {
     setRequirePasswordChange(false);
     localStorage.removeItem("requirePasswordChange");
-    if (user?.rol === 'SUPERADMIN') {
-      navigate("/dashboard");
-    } else {
-      navigate("/admin-dashboard");
-    }
+
+    // Todos van al embudo principal, el enrutador decidirá qué mostrar
+    navigate("/dashboard");
   };
 
   return (
