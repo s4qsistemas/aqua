@@ -24,6 +24,7 @@ io.on("connection", (socket) => {
 
 const PORT = process.env.PORT || 3000;
 
-server.listen(PORT, () => {
+// 👇 AQUÍ ESTÁ EL CAMBIO PARA ABRIR EL PUERTO A TU TELÉFONO 👇
+server.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
 });
