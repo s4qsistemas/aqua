@@ -208,6 +208,7 @@ export function useTenants() {
         showUserModal, setShowUserModal,
         onNew, onEdit, onPlan, onStatus, onHistory,
         handleConfirmStatus, handleConfirmPlan, handleConfirmForm, handleConfirmUserForm, handleResetUserPassword, handleToggleUserStatus,
-        credentialsAlert, setCredentialsAlert
+        credentialsAlert, setCredentialsAlert,
+        fetchTenants // <-- Exportamos la función de recarga
     };
 }

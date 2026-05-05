@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { io } from "socket.io-client";
 import Navbar from "../components/Navbar";
 import TenantStatusModal from "../components/TenantStatusModal";
 import TenantPlanModal from "../components/TenantPlanModal";
@@ -27,8 +29,28 @@ export default function DashboardPage() {
     handleConfirmStatus, handleConfirmPlan,
     handleConfirmForm, handleConfirmUserForm,
     handleResetUserPassword, handleToggleUserStatus,
-    credentialsAlert, setCredentialsAlert
+    credentialsAlert, setCredentialsAlert,
+    fetchTenants
   } = useTenants();
+
+  // Escuchar actualizaciones en tiempo real vía WebSocket
+  useEffect(() => {
+    // Intentamos obtener la base del backend desde env, o usamos localhost por defecto
+    const baseUrl = import.meta.env.VITE_API_BASE_URL 
+      ? import.meta.env.VITE_API_BASE_URL.replace('/api', '') 
+      : "http://localhost:3000";
+
+    const socket = io(baseUrl);
+
+    socket.on('comunidades_actualizadas', () => {
+      console.log('🔄 Cambio detectado en comunidades, actualizando datos...');
+      if (fetchTenants) fetchTenants();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [fetchTenants]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">

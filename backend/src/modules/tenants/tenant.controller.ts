@@ -8,6 +8,8 @@ import {
     cambiarPlanTenantService
 } from "./tenant.service";
 import prisma from "../../lib/prisma";
+import { io } from "../../server";
+
 
 export async function listarTenants(req: Request, res: Response) {
     try {
@@ -27,6 +29,10 @@ export async function crearTenant(req: Request, res: Response) {
         }
 
         const tenant = await crearTenantService(nombre, planId);
+        
+        // Notificar a los clientes vía WebSocket
+        io.emit('comunidades_actualizadas');
+        
         res.status(201).json(tenant);
     } catch (error) {
         res.status(500).json({ message: "Error al crear la comunidad" });
@@ -51,6 +57,10 @@ export async function actualizarTenant(req: Request, res: Response) {
     try {
         const { nombre, planId, adminId } = req.body;
         const tenant = await actualizarTenantService(Number(req.params.id), nombre, planId, adminId);
+        
+        // Notificar a los clientes vía WebSocket
+        io.emit('comunidades_actualizadas');
+        
         res.json(tenant);
     } catch (error) {
         res.status(500).json({ message: "Error al actualizar la comunidad" });
@@ -73,7 +83,8 @@ export async function cambiarEstadoTenant(req: Request, res: Response) {
 
         const updated = await cambiarEstadoTenantService(id, estado, nota, tenant);
 
-        const io = req.app.get("io");
+        // Notificar a los clientes vía WebSocket
+        io.emit('comunidades_actualizadas');
         io.emit("tenant_estado_actualizado", { id, estado });
 
         res.json(updated);
@@ -97,6 +108,10 @@ export async function cambiarPlanTenant(req: Request, res: Response) {
         }
 
         const updated = await cambiarPlanTenantService(id, planId, nota, tenant);
+        
+        // Notificar a los clientes vía WebSocket
+        io.emit('comunidades_actualizadas');
+        
         res.json(updated);
     } catch (error) {
         res.status(500).json({ message: "Error al cambiar el plan" });
@@ -130,4 +145,4 @@ export async function listarPlanes(req: Request, res: Response) {
     } catch (error) {
         res.status(500).json({ message: "Error al listar los planes" });
     }
-}
+}

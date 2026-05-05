@@ -1,30 +1,31 @@
-import "dotenv/config";
-import http from "http";
-import app from "./app";
-import { Server } from "socket.io";
+import 'dotenv/config';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import app from './app';
 
-const server = http.createServer(app);
+// 1. Crear el servidor HTTP envolviendo la aplicación Express ya configurada
+const httpServer = createServer(app);
 
-const io = new Server(server, {
+// 2. Inicializar y exportar Socket.io
+export const io = new Server(httpServer, {
     cors: {
-        origin: "*"
+        origin: "*", 
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
     }
 });
 
-// NUEVO: Inyectamos Socket.io dentro de Express en lugar de usar variables globales
-app.set("io", io);
-
+// 3. Manejar conexiones
 io.on("connection", (socket) => {
-    console.log("Cliente conectado:", socket.id);
+    console.log(`🔌 Nuevo cliente conectado: ${socket.id}`);
 
     socket.on("disconnect", () => {
-        console.log("Cliente desconectado:", socket.id);
+        console.log(`🔌 Cliente desconectado: ${socket.id}`);
     });
 });
 
 const PORT = process.env.PORT || 3000;
 
-// 👇 AQUÍ ESTÁ EL CAMBIO PARA ABRIR EL PUERTO A TU TELÉFONO 👇
-server.listen(Number(PORT), '0.0.0.0', () => {
+// 4. Iniciar el servidor
+httpServer.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
 });

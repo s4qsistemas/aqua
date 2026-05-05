@@ -7,8 +7,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { apiFetch } from '../../src/services/api';
 import UsersFormModal from '../UsersFormModal';
+import { io } from 'socket.io-client';
 
-// 1. Define qué puede recibir
+// 0. Define qué puede recibir
 interface Props {
     user?: any;
     tenants?: any[];
@@ -24,6 +25,8 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
     const [historyModalVisible, setHistoryModalVisible] = useState(false);
     const [historyEvents, setHistoryEvents] = useState<any[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Estados visuales de selectores
     const [showPlanPicker, setShowPlanPicker] = useState(false);
     const [showAdminPicker, setShowAdminPicker] = useState(false);
 
@@ -64,12 +67,39 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
         cargarPlanes();
     }, []);
 
+    // Escuchar actualizaciones en tiempo real vía WebSocket
+    useEffect(() => {
+        // Obtenemos la URL base (sin /api) para el socket
+        // Usamos la misma lógica que en api.ts para mantener consistencia
+        const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL || "http://192.168.1.165:3000/api";
+        const socketUrl = apiBase.replace('/api', '');
+
+        const socket = io(socketUrl, {
+            transports: ['websocket'], // Recomendado para React Native
+        });
+
+        socket.on('connect', () => {
+            console.log('📱 App Móvil conectada al WebSocket');
+        });
+
+        socket.on('comunidades_actualizadas', () => {
+            console.log('🔄 Cambio detectado en comunidades, actualizando vista móvil...');
+            cargarComunidades();
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
+
+    // 4. Manejadores de Modales y Acciones
     const openCreateModal = () => {
         setEditingId(null);
         setNombre('');
         setPlanId(null);
         setAdminId(null);
         setCurrentTenantUsers([]);
+        setShowPlanPicker(false);
         setModalVisible(true);
     };
 
@@ -84,23 +114,19 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
         setPlanId(tenant.planId || null);
         setCurrentTenantUsers(tenant.usuarios || []);
 
-        // Seteamos el admin actual si existe
         if (tenant.usuarios && tenant.usuarios.length > 0) {
             setAdminId(tenant.usuarios[0].id);
         } else {
             setAdminId(null);
         }
-
+        setShowAdminPicker(false);
         setModalVisible(true);
     };
 
+    // 5. Funciones handles de la UI
     const handleSave = async () => {
         if (!nombre.trim()) {
             Alert.alert('Validación', 'El nombre es obligatorio');
-            return;
-        }
-        if (!editingId && !planId) {
-            Alert.alert('Validación', 'Debe seleccionar un plan inicial');
             return;
         }
 
@@ -113,9 +139,23 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                 });
                 Alert.alert('Éxito', 'Comunidad actualizada correctamente');
             } else {
+                // Si no hay plan seleccionado, buscamos el "Básico" por defecto
+                let finalPlanId = planId;
+                if (!finalPlanId) {
+                    const basico = planes.find(p => 
+                        p.nombre.toLowerCase().includes('básico') || 
+                        p.nombre.toLowerCase().includes('basico')
+                    );
+                    if (basico) finalPlanId = basico.id;
+                }
+
                 await apiFetch('/tenants', {
                     method: 'POST',
-                    body: JSON.stringify({ nombre, planId: Number(planId), estado: 'ACTIVO' })
+                    body: JSON.stringify({ 
+                        nombre, 
+                        planId: finalPlanId ? Number(finalPlanId) : undefined, 
+                        estado: 'ACTIVO' 
+                    })
                 });
                 Alert.alert('Éxito', 'Comunidad creada correctamente');
             }
@@ -158,11 +198,10 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
 
     const handleToggleUserStatus = (userId: number, nuevoEstado: string) => {
         const accion = nuevoEstado === 'ACTIVO' ? 'activar' : 'desactivar';
-        console.log("Clic en handleToggleUserStatus:", userId, nuevoEstado);
-        
+
         Alert.alert(
             "Confirmar acción",
-            "¿Estás seguro de que deseas " + accion + " a este usuario?",
+            `¿Estás seguro de que deseas ${accion} a este usuario?`,
             [
                 { text: "Cancelar", style: "cancel" },
                 {
@@ -174,11 +213,10 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                                 method: 'PATCH',
                                 body: JSON.stringify({ estado: nuevoEstado })
                             });
-                            Alert.alert('Éxito', "Usuario marcado como " + nuevoEstado);
+                            Alert.alert('Éxito', `Usuario marcado como ${nuevoEstado}`);
                             cargarComunidades();
                             setUserModalVisible(false);
                         } catch (error: any) {
-                            console.error("Error en handleToggleUserStatus:", error);
                             Alert.alert('Error', 'No se pudo cambiar el estado del usuario');
                         } finally {
                             setIsSubmitting(false);
@@ -203,12 +241,12 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
         }
     };
 
-    const openHistory = async (tenantId: string, nombre: string) => {
+    const openHistory = async (tenantId: string, tenantNombre: string) => {
         try {
             setIsLoading(true);
             const data = await apiFetch(`/tenants/${tenantId}/historial`);
             setHistoryEvents(data);
-            setNombre(nombre); // Reutilizamos el estado nombre para el título del modal
+            setNombre(tenantNombre); // Reutilizamos el nombre para el título
             setHistoryModalVisible(true);
         } catch (error) {
             Alert.alert("Error", "No se pudo cargar el historial.");
@@ -218,29 +256,27 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
     };
 
     const toggleStatus = (tenant: any) => {
-        console.log("Clic detectado en toggleStatus para:", tenant.nombre);
         const nuevoEstado = tenant.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
         const accion = nuevoEstado === 'ACTIVO' ? 'activar' : 'desactivar';
 
         Alert.alert(
             "Confirmar acción",
-            "¿Estás seguro de que deseas " + accion + " la comunidad " + tenant.nombre + "?",
+            `¿Estás seguro de que deseas ${accion} la comunidad ${tenant.nombre}?`,
             [
-                { text: "Cancelar", style: "cancel", onPress: () => console.log("Cancelado") },
+                { text: "Cancelar", style: "cancel" },
                 {
                     text: "Confirmar",
                     onPress: async () => {
                         try {
                             await apiFetch(`/tenants/${tenant.id}/estado`, {
                                 method: 'PATCH',
-                                body: JSON.stringify({ 
-                                    estado: nuevoEstado, 
-                                    nota: "Cambio desde app móvil por " + (user?.nombre || "SuperAdmin")
+                                body: JSON.stringify({
+                                    estado: nuevoEstado,
+                                    nota: `Cambio desde app móvil por ${user?.nombre || "SuperAdmin"}`
                                 })
                             });
                             cargarComunidades();
                         } catch (e) {
-                            console.error("Error en toggleStatus:", e);
                             Alert.alert('Error', 'No se pudo cambiar el estado');
                         }
                     }
@@ -249,7 +285,6 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
         );
     };
 
-    // 4. Renderizado de la UI de la tarjeta
     const renderTenantItem = ({ item: t }: { item: any }) => (
         <View style={styles.tenantCard}>
             <View style={styles.tenantHeader}>
@@ -269,7 +304,7 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                 <View style={styles.infoRow}>
                     <Ionicons name="person-outline" size={14} color="#94a3b8" />
                     <Text style={styles.tenantAdmin}>
-                        {t.usuarios && t.usuarios.length > 0 ? t.usuarios[0].nombre + " (" + t.usuarios[0].email + ")" : 'Sin administrador'}
+                        {t.usuarios && t.usuarios.length > 0 ? `${t.usuarios[0].nombre} (${t.usuarios[0].email})` : 'Sin administrador'}
                     </Text>
                 </View>
                 <View style={styles.infoRow}>
@@ -336,16 +371,14 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                 />
             )}
 
-            {/* MODAL DE FORMULARIO (IGUALADO A WEB) */}
+            {/* MODAL DE FORMULARIO DE COMUNIDAD */}
             <Modal visible={modalVisible} animationType="slide" transparent={true}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        {/* Botón Cerrar */}
                         <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
                             <Ionicons name="close" size={24} color="#94a3b8" />
                         </TouchableOpacity>
 
-                        {/* Icono y Títulos */}
                         <View style={styles.modalHeader}>
                             <View style={styles.iconContainer}>
                                 <Ionicons name="business" size={32} color="#3b82f6" />
@@ -358,8 +391,8 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                             </Text>
                         </View>
 
-                        {/* Campos del Formulario */}
-                        <ScrollView showsVerticalScrollIndicator={false}>
+                        {/* ¡OJO AQUÍ! Se añadió keyboardShouldPersistTaps para proteger los menús desplegables */}
+                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                             <View style={styles.fieldGroup}>
                                 <Text style={styles.fieldLabel}>Nombre de la Comunidad</Text>
                                 <TextInput
@@ -371,7 +404,6 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                                 />
                             </View>
 
-                            {/* Campo Plan (Editable en Crear, Solo Lectura en Editar) */}
                             <View style={styles.fieldGroup}>
                                 <Text style={styles.fieldLabel}>{editingId ? 'Plan' : 'Plan inicial'}</Text>
                                 {editingId ? (
@@ -387,7 +419,7 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                                             onPress={() => setShowPlanPicker(!showPlanPicker)}
                                         >
                                             <Text style={[styles.pickerText, !planId && { color: '#64748b' }]}>
-                                                {planId ? planes.find(p => p.id === planId)?.nombre : 'Seleccione un plan...'}
+                                                {planId ? planes.find(p => p.id === planId)?.nombre : 'Seleccione (Básico por defecto)...'}
                                             </Text>
                                             <Ionicons name={showPlanPicker ? "chevron-up" : "chevron-down"} size={20} color="#64748b" />
                                         </TouchableOpacity>
@@ -415,7 +447,6 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                                 )}
                             </View>
 
-                            {/* Campo Administrador (Solo en Edición) */}
                             {editingId && currentTenantUsers.length > 0 && (
                                 <View style={styles.fieldGroup}>
                                     <Text style={styles.fieldLabel}>Administrador</Text>
@@ -459,7 +490,6 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                                 </View>
                             )}
 
-                            {/* Botones */}
                             <View style={styles.modalFooter}>
                                 <TouchableOpacity
                                     style={styles.btnCancel}
@@ -472,7 +502,7 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                                 <TouchableOpacity
                                     style={[styles.btnConfirm, isSubmitting && { opacity: 0.7 }]}
                                     onPress={handleSave}
-                                    disabled={isSubmitting || !nombre.trim() || (!editingId && !planId)}
+                                    disabled={isSubmitting || !nombre.trim()}
                                 >
                                     {isSubmitting ? (
                                         <ActivityIndicator color="white" size="small" />
@@ -488,7 +518,8 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                 </View>
             </Modal>
 
-            <UsersFormModal 
+            {/* MODAL EXTERNO DE USUARIOS */}
+            <UsersFormModal
                 key={`user-modal-${listaComunidades.length}`}
                 isOpen={userModalVisible}
                 onClose={() => setUserModalVisible(false)}
@@ -515,7 +546,8 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                             <Text style={styles.modalSubtitle}>{nombre}</Text>
                         </View>
 
-                        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
+                        {/* Protegemos también este ScrollView por consistencia */}
+                        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }} keyboardShouldPersistTaps="handled">
                             {historyEvents.length === 0 ? (
                                 <Text style={styles.loadingText}>No hay eventos registrados.</Text>
                             ) : (
@@ -536,9 +568,9 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                                 ))
                             )}
                         </ScrollView>
-                        
-                        <TouchableOpacity 
-                            style={[styles.btnConfirm, { marginTop: 24, backgroundColor: '#334155' }]} 
+
+                        <TouchableOpacity
+                            style={[styles.btnConfirm, { marginTop: 24, backgroundColor: '#334155' }]}
                             onPress={() => setHistoryModalVisible(false)}
                         >
                             <Text style={styles.btnConfirmText}>Cerrar</Text>
@@ -568,12 +600,12 @@ const styles = StyleSheet.create({
     tenantTitle: { color: 'white', fontSize: 18, fontWeight: 'bold' },
     statusBadge: { backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
     statusText: { color: '#10b981', fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' },
-    
+
     tenantInfo: { marginBottom: 16 },
     infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
     tenantAdmin: { color: '#94a3b8', fontSize: 13 },
     tenantPlan: { color: '#3b82f6', fontSize: 13, fontWeight: '600' },
-    
+
     tenantActions: { flexDirection: 'row', gap: 10, justifyContent: 'flex-end' },
     iconBtn: { width: 40, height: 40, backgroundColor: '#0f172a', borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#334155' },
 
@@ -593,7 +625,7 @@ const styles = StyleSheet.create({
     timelineDate: { color: '#64748b', fontSize: 11, fontWeight: 'bold', marginBottom: 4 },
     timelineEvent: { color: '#f8fafc', fontSize: 15, fontWeight: '600' },
     timelineNote: { color: '#94a3b8', fontSize: 13, marginTop: 4, fontStyle: 'italic' },
-    
+
     fieldGroup: { marginBottom: 24 },
     fieldLabel: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold', marginBottom: 10, marginLeft: 4 },
     input: { backgroundColor: '#0f172a', color: 'white', padding: 16, borderRadius: 18, borderWidth: 1, borderColor: '#334155', fontSize: 16 },
@@ -602,7 +634,8 @@ const styles = StyleSheet.create({
     pickerTrigger: { backgroundColor: '#0f172a', padding: 16, borderRadius: 18, borderWidth: 1, borderColor: '#334155', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     pickerText: { color: 'white', fontSize: 16, fontWeight: '600' },
     pickerSubtitle: { color: '#64748b', fontSize: 12 },
-    
+
+    // Aquí el Dropdown funciona modo "acordeón" empujando hacia abajo. Esto es ideal para formularios de una sola columna.
     pickerDropdown: { marginTop: 8, backgroundColor: '#0f172a', borderRadius: 18, borderWidth: 1, borderColor: '#334155', overflow: 'hidden' },
     pickerOption: { padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#1e293b' },
     pickerOptionActive: { backgroundColor: 'rgba(59, 130, 246, 0.05)' },
