@@ -68,3 +68,19 @@ export const resetearPasswordUsuario = async (id: number) => {
 
     return { message: "Contraseña reseteada", tempPassword: DEFAULT_TEMP_PASSWORD };
 };
+
+export const listarUsuarios = async (tenantId?: number) => {
+    return await prisma.usuario.findMany({
+        where: tenantId ? { tenantId } : {},
+        select: { 
+            id: true, 
+            nombre: true, 
+            email: true, 
+            rol: true, 
+            estado: true, 
+            tenantId: true,
+            createdAt: true 
+        },
+        orderBy: { createdAt: 'desc' }
+    });
+};

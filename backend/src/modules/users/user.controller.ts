@@ -40,3 +40,18 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
         res.status(400).json({ error: error.message });
     }
 };
+
+export const obtenerUsuarios = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ error: "Usuario no autenticado" });
+            return;
+        }
+        // Si no es Superadmin, solo listamos los de su propio Tenant
+        const tenantId = req.user.rol === 'SUPERADMIN' ? undefined : req.user.tenantId || undefined;
+        const usuarios = await userService.listarUsuarios(tenantId);
+        res.status(200).json(usuarios);
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+};
