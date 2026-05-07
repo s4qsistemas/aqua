@@ -94,10 +94,11 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  plan      Plan?             @relation(fields: [planId], references: [id])
-  usuarios  Usuario[]
-  recintos  Recinto[]
-  historial HistorialTenant[]
+  plan        Plan?             @relation(fields: [planId], references: [id])
+  usuarios    Usuario[]
+  recintos    Recinto[]
+  historial   HistorialTenant[]
+  telemetrias Telemetria[]
 }
 
 model Usuario {
@@ -158,20 +159,18 @@ model Dispositivo {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
-  estacion    Estacion     @relation(fields: [estacionId], references: [id])
-  telemetrias Telemetria[]
-  comandos    Comando[]
+  estacion Estacion  @relation(fields: [estacionId], references: [id])
+  comandos Comando[]
 }
 
 model Telemetria {
   id            Int      @id @default(autoincrement())
-  dispositivoId Int
-  variable      String
-  valor         Float
-  unidad        String?
-  fecha         DateTime @default(now())
+  tenantId      Int
+  nivelEstanque Float
+  bombaActiva   Boolean
+  fechaLectura  DateTime @default(now())
 
-  dispositivo Dispositivo @relation(fields: [dispositivoId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 }
 
 model Alarma {

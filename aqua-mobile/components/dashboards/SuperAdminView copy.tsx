@@ -18,10 +18,11 @@ interface Props {
 
 export default function SuperAdminView({ user, tenants: externalTenants }: Props) {
     const { width } = useWindowDimensions();
-    const isWide = width > 768; // Punto de quiebre para considerar la pantalla "ancha" (Web/Tablet)
+    const isWide = width > 768;
 
     // 1. Estados principales
     const [listaComunidades, setListaComunidades] = useState<any[]>(externalTenants || []);
+    // ... rest of the states stay the same ...
     const [planes, setPlanes] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
@@ -162,16 +163,14 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
     const handleToggleUserStatus = (userId: number, nuevoEstado: string) => {
         Alert.alert("Confirmar", "¿Seguro?", [
             { text: "Cancelar", style: "cancel" },
-            {
-                text: "Confirmar", onPress: async () => {
-                    try {
-                        setIsSubmitting(true);
-                        await apiFetch(`/usuarios/${userId}/estado`, { method: 'PATCH', body: JSON.stringify({ estado: nuevoEstado }) });
-                        cargarComunidades();
-                        setUserModalVisible(false);
-                    } catch (e) { Alert.alert('Error', 'No se pudo cambiar el estado'); } finally { setIsSubmitting(false); }
-                }
-            }
+            { text: "Confirmar", onPress: async () => {
+                try {
+                    setIsSubmitting(true);
+                    await apiFetch(`/usuarios/${userId}/estado`, { method: 'PATCH', body: JSON.stringify({ estado: nuevoEstado }) });
+                    cargarComunidades();
+                    setUserModalVisible(false);
+                } catch (e) { Alert.alert('Error', 'No se pudo cambiar el estado'); } finally { setIsSubmitting(false); }
+            }}
         ]);
     };
 
@@ -196,14 +195,12 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
         const nuevoEstado = tenant.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
         Alert.alert("Confirmar", `¿Deseas cambiar el estado a ${nuevoEstado}?`, [
             { text: "Cancelar", style: "cancel" },
-            {
-                text: "Confirmar", onPress: async () => {
-                    try {
-                        await apiFetch(`/tenants/${tenant.id}/estado`, { method: 'PATCH', body: JSON.stringify({ estado: nuevoEstado }) });
-                        cargarComunidades();
-                    } catch (e) { Alert.alert('Error', 'No se pudo cambiar el estado'); }
-                }
-            }
+            { text: "Confirmar", onPress: async () => {
+                try {
+                    await apiFetch(`/tenants/${tenant.id}/estado`, { method: 'PATCH', body: JSON.stringify({ estado: nuevoEstado }) });
+                    cargarComunidades();
+                } catch (e) { Alert.alert('Error', 'No se pudo cambiar el estado'); }
+            }}
         ]);
     };
 
@@ -248,24 +245,18 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                         data={listaComunidades}
                         keyExtractor={(item) => item.id?.toString()}
                         renderItem={renderTenantItem}
-                        // Lógica responsiva para las columnas
                         numColumns={isWide ? 2 : 1}
-                        key={isWide ? 'wide-grid' : 'mobile-list'}
+                        key={isWide ? 'wide' : 'mobile'}
                         contentContainerStyle={styles.listContent}
-                        // Si hay más de 1 columna, le decimos cómo espaciarlas
-                        columnWrapperStyle={isWide ? styles.columnWrapper : undefined}
                     />
                 )}
             </View>
 
-            {/* Modal Responsivo */}
+            {/* MODALS stay largely the same but could be centered or fixed width for web */}
             <Modal visible={modalVisible} animationType="fade" transparent={true}>
                 <View style={styles.modalOverlay}>
-                    {/* El contenedor principal ahora respeta el maxWidth en web */}
-                    <View style={[styles.modalContent, isWide && styles.modalContentWide]}>
-                        <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
-                            <Ionicons name="close" size={24} color="#94a3b8" />
-                        </TouchableOpacity>
+                    <View style={[styles.modalContent, isWide && { maxWidth: 500, alignSelf: 'center' }]}>
+                        <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}><Ionicons name="close" size={24} color="#94a3b8" /></TouchableOpacity>
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <View style={styles.modalHeader}>
                                 <View style={styles.iconContainer}><Ionicons name="business" size={32} color="#3b82f6" /></View>
@@ -276,9 +267,7 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                                 <TextInput style={styles.input} value={nombre} onChangeText={setNombre} />
                             </View>
                             <View style={styles.modalFooter}>
-                                <TouchableOpacity style={styles.btnConfirm} onPress={handleSave}>
-                                    <Text style={styles.btnConfirmText}>Guardar</Text>
-                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.btnConfirm} onPress={handleSave}><Text style={styles.btnConfirmText}>Guardar</Text></TouchableOpacity>
                             </View>
                         </ScrollView>
                     </View>
@@ -301,13 +290,9 @@ const styles = StyleSheet.create({
     usersButtonText: { color: '#818cf8', fontWeight: 'bold', fontSize: 14 },
     fabButton: { backgroundColor: '#2563eb', width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
     sectionTitle: { color: '#94a3b8', fontSize: 14, fontWeight: 'bold', marginHorizontal: 24, marginBottom: 16, textTransform: 'uppercase' },
-
-    // Estilos de la lista y la grilla responsiva
-    listContent: { paddingHorizontal: 24, paddingBottom: 24, gap: 16 },
-    columnWrapper: { gap: 16 }, // Espacio horizontal entre tarjetas en la Web
+    listContent: { padding: 24, gap: 16 },
     tenantCard: { backgroundColor: '#1e293b', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#334155' },
-    tenantCardWide: { flex: 1 }, // Flex 1 hace que ocupen el 50% exacto de la pantalla ancha sin romper los márgenes
-
+    tenantCardWide: { flex: 1, margin: 8 },
     tenantHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
     tenantTitle: { color: 'white', fontSize: 18, fontWeight: 'bold' },
     statusBadge: { backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
@@ -318,12 +303,8 @@ const styles = StyleSheet.create({
     tenantPlan: { color: '#3b82f6', fontSize: 13, fontWeight: '600' },
     tenantActions: { flexDirection: 'row', gap: 10, justifyContent: 'flex-end' },
     iconBtn: { width: 40, height: 40, backgroundColor: '#0f172a', borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#334155' },
-
-    // Estilos responsivos del Modal
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-    modalContent: { backgroundColor: '#1e293b', borderRadius: 32, padding: 32, borderWidth: 1, borderColor: '#334155', width: '100%' },
-    modalContentWide: { maxWidth: 500 }, // Tope máximo para que no se estire en monitores grandes
-
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.85)', justifyContent: 'center', padding: 20 },
+    modalContent: { backgroundColor: '#1e293b', borderRadius: 32, padding: 32, borderWidth: 1, borderColor: '#334155' },
     closeBtn: { position: 'absolute', top: 24, right: 24, zIndex: 10 },
     modalHeader: { alignItems: 'center', marginBottom: 32 },
     iconContainer: { width: 64, height: 64, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
