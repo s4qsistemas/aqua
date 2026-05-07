@@ -55,6 +55,7 @@ CREATE TABLE "Usuario" (
     "passwordHash" TEXT NOT NULL,
     "rol" "Rol" NOT NULL,
     "estado" "Estado" NOT NULL DEFAULT 'ACTIVO',
+    "isPrimary" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
