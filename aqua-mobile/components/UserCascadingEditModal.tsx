@@ -89,7 +89,7 @@ export default function UserCascadingEditModal({
     );
 
     const renderPicker = (label: string, value: string, options: any[], onSelect: (val: string) => void, visible: boolean, setVisible: (v: boolean) => void) => (
-        <View style={styles.filterGroup}>
+        <View style={[styles.filterGroup, visible && { zIndex: 100 }]}>
             <Text style={styles.filterLabel}>{label}</Text>
             <TouchableOpacity 
                 style={styles.pickerTrigger} 
@@ -145,8 +145,8 @@ export default function UserCascadingEditModal({
                             setShowTenantPicker
                         )}
 
-                        <View style={styles.row}>
-                            <View style={{flex: 1.5}}>
+                        <View style={[Platform.OS === 'web' ? styles.row : styles.column, { zIndex: 1 }]}>
+                            <View style={{flex: Platform.OS === 'web' ? 1.5 : 0}}>
                                 {renderChips(
                                     "Rol", 
                                     filters.rol, 
@@ -154,7 +154,7 @@ export default function UserCascadingEditModal({
                                     (val) => setFilters({...filters, rol: val})
                                 )}
                             </View>
-                            <View style={{flex: 1, marginLeft: 16}}>
+                            <View style={{flex: Platform.OS === 'web' ? 1 : 0, marginLeft: Platform.OS === 'web' ? 16 : 0, marginTop: Platform.OS === 'web' ? 0 : 8}}>
                                 {renderChips(
                                     "Estado", 
                                     filters.estado, 
@@ -222,9 +222,9 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     title: { color: 'white', fontSize: 20, fontWeight: 'bold' },
-    closeBtn: { padding: 4 },
+    closeBtn: { padding: 4, marginRight: 24 },
     
-    filtersSection: { marginBottom: 20 },
+    filtersSection: { marginBottom: 20, zIndex: 10, position: 'relative' },
     filterGroup: { marginBottom: 16 },
     filterLabel: { color: '#94a3b8', fontSize: 11, fontWeight: 'bold', marginBottom: 10, textTransform: 'uppercase', marginLeft: 4, letterSpacing: 1 },
     pickerTrigger: { 
@@ -252,6 +252,7 @@ const styles = StyleSheet.create({
     chipText: { color: '#94a3b8', fontSize: 11, fontWeight: 'bold' },
     activeChipText: { color: '#38bdf8' },
     row: { flexDirection: 'row' },
+    column: { flexDirection: 'column' },
     
     dropdown: { 
         position: 'absolute',
@@ -270,7 +271,7 @@ const styles = StyleSheet.create({
     dropdownOption: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#1e293b' },
     dropdownText: { color: '#94a3b8', fontSize: 14 },
     
-    listSection: { flex: 1, marginTop: 10, borderTopWidth: 1, borderTopColor: '#334155', paddingTop: 20 },
+    listSection: { flexGrow: 1, flexShrink: 1, marginTop: 10, borderTopWidth: 1, borderTopColor: '#334155', paddingTop: 20, zIndex: 1, position: 'relative' },
     listTitle: { color: '#64748b', fontSize: 11, fontWeight: 'bold', marginBottom: 20, textTransform: 'uppercase', letterSpacing: 1 },
     userItem: { 
         flexDirection: 'row', 

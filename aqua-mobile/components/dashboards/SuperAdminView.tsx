@@ -43,25 +43,29 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
 
     // 3. Lógica de red
     const cargarComunidades = async () => {
+        console.log("🚀 SuperAdminView: Intentando cargar comunidades...");
         try {
             setIsLoading(true);
             const data = await apiFetch('/tenants');
+            console.log("✅ SuperAdminView: Comunidades cargadas.");
             if (Array.isArray(data)) {
                 setListaComunidades(data);
             }
         } catch (error: any) {
-            console.error("Error al cargar comunidades:", error);
+            console.error("❌ SuperAdminView Error Comunidades:", error.message);
         } finally {
             setIsLoading(false);
         }
     };
 
     const cargarPlanes = async () => {
+        console.log("🚀 SuperAdminView: Intentando cargar planes...");
         try {
             const data = await apiFetch('/tenants/planes');
+            console.log("✅ SuperAdminView: Planes cargados.");
             setPlanes(data);
-        } catch (error) {
-            console.error("Error al cargar planes:", error);
+        } catch (error: any) {
+            console.error("❌ SuperAdminView Error Planes:", error.message);
         }
     };
 
@@ -70,22 +74,41 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
         cargarPlanes();
     }, []);
 
-    // Escuchar actualizaciones en tiempo real vía WebSocket
     useEffect(() => {
-        const defaultIP = "http://192.168.1.173:3000/api";
         const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+        const defaultIP = "http://192.168.1.8:3000/api";
         
         let apiBase = envUrl || defaultIP;
         
-        // Ajuste dinámico para Web local
-        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
             apiBase = "http://localhost:3000/api";
         }
 
         const socketUrl = apiBase.replace('/api', '');
-        const socket = io(socketUrl, { transports: ['websocket'] });
-        socket.on('comunidades_actualizadas', () => cargarComunidades());
-        return () => { socket.disconnect(); };
+        console.log("🔗 Intentando conectar Socket a:", socketUrl);
+
+        const socket = io(socketUrl, { 
+            transports: ['websocket', 'polling'], // Permitir polling si websocket falla
+            forceNew: true 
+        });
+
+        socket.on('connect', () => {
+            console.log("✅ Socket conectado con ID:", socket.id);
+        });
+
+        socket.on('connect_error', (err) => {
+            console.error("❌ Error de conexión Socket:", err.message);
+        });
+
+        socket.on('comunidades_actualizadas', () => {
+            console.log("🔄 Actualización recibida vía Socket");
+            cargarComunidades();
+        });
+
+        return () => { 
+            console.log("🔌 Desconectando Socket...");
+            socket.disconnect(); 
+        };
     }, []);
 
     // 4. Manejadores de Modales y Acciones
@@ -342,30 +365,34 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                         <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
                             <Ionicons name="close" size={24} color="#94a3b8" />
                         </TouchableOpacity>
-                        <ScrollView showsVerticalScrollIndicator={true}>
-                            <View style={styles.modalHeader}>
-                                <View style={styles.iconContainer}><Ionicons name="business" size={32} color="#3b82f6" /></View>
-                                <Text style={styles.modalTitle}>{editingId ? 'Gestionar Comunidad' : 'Nueva Comunidad'}</Text>
+                        <View style={styles.modalHeader}>
+                            <View style={styles.iconContainer}><Ionicons name="business" size={32} color="#3b82f6" /></View>
+                            <Text style={styles.modalTitle}>{editingId ? 'Gestionar Comunidad' : 'Nueva Comunidad'}</Text>
+                        </View>
+
+                        {/* Selector de Pestañas (Solo en Edición) */}
+                        {editingId && (
+                            <View style={styles.tabContainer}>
+                                <TouchableOpacity 
+                                    style={[styles.tab, modalTab === 'GENERAL' && styles.activeTab]} 
+                                    onPress={() => setModalTab('GENERAL')}
+                                >
+                                    <Text style={[styles.tabText, modalTab === 'GENERAL' && styles.activeTabText]}>Información</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[styles.tab, modalTab === 'HISTORY' && styles.activeTab]} 
+                                    onPress={() => setModalTab('HISTORY')}
+                                >
+                                    <Text style={[styles.tabText, modalTab === 'HISTORY' && styles.activeTabText]}>Historial</Text>
+                                </TouchableOpacity>
                             </View>
+                        )}
 
-                            {/* Selector de Pestañas (Solo en Edición) */}
-                            {editingId && (
-                                <View style={styles.tabContainer}>
-                                    <TouchableOpacity 
-                                        style={[styles.tab, modalTab === 'GENERAL' && styles.activeTab]} 
-                                        onPress={() => setModalTab('GENERAL')}
-                                    >
-                                        <Text style={[styles.tabText, modalTab === 'GENERAL' && styles.activeTabText]}>Información</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity 
-                                        style={[styles.tab, modalTab === 'HISTORY' && styles.activeTab]} 
-                                        onPress={() => setModalTab('HISTORY')}
-                                    >
-                                        <Text style={[styles.tabText, modalTab === 'HISTORY' && styles.activeTabText]}>Historial</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            )}
-
+                        <ScrollView 
+                            showsVerticalScrollIndicator={true} 
+                            style={{ flexGrow: 0, flexShrink: 1 }}
+                            contentContainerStyle={{ paddingBottom: 20 }}
+                        >
                             {modalTab === 'GENERAL' ? (
                                 <>
                                     <View style={styles.fieldGroup}>
@@ -373,9 +400,9 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                                 <TextInput style={styles.input} value={nombre} onChangeText={setNombre} placeholder="Nombre de la comunidad" placeholderTextColor="#64748b" />
                             </View>
 
-                            <View style={[styles.row, { zIndex: 100 }]}>
+                            <View style={[isWide ? styles.row : styles.column, { zIndex: 100 }]}>
                                 {/* Selector de Plan */}
-                                <View style={[styles.fieldGroup, { flex: 1, marginRight: 8, zIndex: showPlanPicker ? 200 : 1 }]}>
+                                <View style={[styles.fieldGroup, { flex: isWide ? 1 : 0, width: isWide ? 'auto' : '100%', marginRight: isWide ? 8 : 0, zIndex: showPlanPicker ? 200 : 1 }]}>
                                     <Text style={styles.fieldLabel}>Plan</Text>
                                     <TouchableOpacity style={styles.pickerTrigger} onPress={() => { setShowPlanPicker(!showPlanPicker); setShowAdminPicker(false); }}>
                                         <Text style={styles.pickerText}>{planes.find(p => p.id === planId)?.nombre || "Sel. Plan"}</Text>
@@ -394,7 +421,7 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
 
                                 {/* Selector de Administrador (Solo en Edición) */}
                                 {editingId && (
-                                    <View style={[styles.fieldGroup, { flex: 1, marginLeft: 8, zIndex: showAdminPicker ? 200 : 1 }]}>
+                                    <View style={[styles.fieldGroup, { flex: isWide ? 1 : 0, width: isWide ? 'auto' : '100%', marginLeft: isWide ? 8 : 0, marginTop: isWide ? 0 : 16, zIndex: showAdminPicker ? 200 : 1 }]}>
                                         <Text style={styles.fieldLabel}>Administrador</Text>
                                         <TouchableOpacity style={styles.pickerTrigger} onPress={() => { setShowAdminPicker(!showAdminPicker); setShowPlanPicker(false); }}>
                                             <Text style={styles.pickerText} numberOfLines={1}>{currentTenantUsers.find(u => u.id === adminId)?.nombre || "Sin Admin"}</Text>
@@ -450,7 +477,7 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                                                     <View style={[
                                                         styles.historyIcon, 
                                                         { 
-                                                            backgroundColor: 
+                                                                backgroundColor: 
                                                                 event.tipo === 'CAMBIO_PLAN' ? 'rgba(59, 130, 246, 0.2)' : 
                                                                 event.tipo === 'CAMBIO_ADMIN' ? 'rgba(129, 140, 248, 0.2)' :
                                                                 'rgba(16, 185, 129, 0.2)' 
@@ -548,17 +575,18 @@ const styles = StyleSheet.create({
 
     // Estilos responsivos del Modal
     modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-    modalContent: { backgroundColor: '#1e293b', borderRadius: 32, padding: 32, borderWidth: 1, borderColor: '#334155', width: '100%', maxHeight: '90%' },
+    modalContent: { backgroundColor: '#1e293b', borderRadius: 32, padding: Platform.OS === 'web' ? 32 : 20, borderWidth: 1, borderColor: '#334155', width: '100%', maxHeight: '90%' },
     modalContentWide: { maxWidth: 500 }, // Tope máximo para que no se estire en monitores grandes
 
-    closeBtn: { position: 'absolute', top: 24, right: 24, zIndex: 10 },
-    modalHeader: { alignItems: 'center', marginBottom: 32 },
+    closeBtn: { position: 'absolute', top: 20, right: 20, zIndex: 10 },
+    modalHeader: { alignItems: 'center', marginBottom: 24 },
     iconContainer: { width: 64, height: 64, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-    modalTitle: { color: 'white', fontSize: 26, fontWeight: 'bold' },
-    fieldGroup: { marginBottom: 24 },
+    modalTitle: { color: 'white', fontSize: 24, fontWeight: 'bold' },
+    fieldGroup: { marginBottom: 20 },
     fieldLabel: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold', marginBottom: 10 },
     input: { backgroundColor: '#0f172a', color: 'white', padding: 16, borderRadius: 18, borderWidth: 1, borderColor: '#334155' },
-    row: { flexDirection: 'row', marginBottom: 16 },
+    row: { flexDirection: 'row' },
+    column: { flexDirection: 'column' },
     pickerTrigger: { backgroundColor: '#0f172a', padding: 14, borderRadius: 18, borderWidth: 1, borderColor: '#334155', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     pickerText: { color: 'white', fontSize: 13, fontWeight: '600' },
     dropdownAbsolute: { position: 'absolute', bottom: 55, left: 0, right: 0, backgroundColor: '#0f172a', borderRadius: 18, borderWidth: 1, borderColor: '#334155', overflow: 'hidden', elevation: 10, zIndex: 300 },

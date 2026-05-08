@@ -33,9 +33,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Al abrir la app, revisa si hay una sesión guardada
     useEffect(() => {
         const bootstrapAsync = async () => {
+            console.log("🛠️ AuthContext: Iniciando bootstrapAsync...");
             try {
                 const storedToken = await AsyncStorage.getItem("token");
+                console.log("🛠️ AuthContext: Token recuperado:", storedToken ? "SÍ" : "NO");
+                
                 const storedUser = await AsyncStorage.getItem("user");
+                console.log("🛠️ AuthContext: Usuario recuperado:", storedUser ? "SÍ" : "NO");
+
                 const storedRequirePasswordChange = await AsyncStorage.getItem("requirePasswordChange");
 
                 if (storedToken && storedUser) {
@@ -44,13 +49,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     setRequirePasswordChange(storedRequirePasswordChange === "true");
                 }
             } catch (e) {
-                console.error("Error restaurando sesión", e);
+                console.error("❌ Error restaurando sesión:", e);
             } finally {
-                setIsLoading(false); // Ya terminó de buscar en la memoria
+                console.log("✅ AuthContext: bootstrapAsync terminado.");
+                setIsLoading(false);
             }
         };
 
+        // Timeout de seguridad: si en 5 segundos no termina, desbloqueamos la UI
+        const safetyTimer = setTimeout(() => {
+            if (isLoading) {
+                console.warn("⚠️ AuthContext: El cargado tardó demasiado, forzando isLoading = false");
+                setIsLoading(false);
+            }
+        }, 5000);
+
         bootstrapAsync();
+        return () => clearTimeout(safetyTimer);
     }, []);
 
     const login = async (newToken: string, newUser: User, mustChangePass: boolean = false) => {

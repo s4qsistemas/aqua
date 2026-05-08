@@ -13,23 +13,33 @@ function RootNavigation() {
     const router = useRouter();
 
     useEffect(() => {
-        // Si todavía está leyendo el AsyncStorage, no hacemos nada
+        // Log para depurar qué está pasando
+        const currentPath = segments.join('/');
+        console.log(`🛣️ RootNavigation: isLoading=${isLoading}, token=${token ? 'SÍ' : 'NO'}, path="${currentPath}"`);
+
         if (isLoading) return;
+        const inAuthGroup = (segments as string[]).includes('(auth)');
+        const isForceChangePage = (segments as string[]).includes('force-change-password');
 
-        // Detectamos si el usuario está intentando acceder a una pantalla de la carpeta (auth)
-        const inAuthGroup = segments[0] === '(auth)';
-        const isForceChangePage = segments[1] === 'force-change-password';
-
-        if (!token && !inAuthGroup) {
-            // 🔴 No tiene sesión y no está en el login -> Expulsar al Login
-            router.replace('/(auth)/login');
-        } else if (token) {
-            // 🟡 Tiene sesión. ¿Debe cambiar la clave?
-            if (requirePasswordChange && !isForceChangePage) {
-                router.replace('/(auth)/force-change-password');
-            } else if (!requirePasswordChange && (inAuthGroup || isForceChangePage)) {
-                // 🟢 Ya está listo -> Redirigir a su Dashboard
-                router.replace('/(dashboard)/home');
+        if (!token) {
+            // 🔴 Sin sesión
+            if (!inAuthGroup) {
+                console.log("🔄 Redirigiendo a Login...");
+                router.replace('/(auth)/login');
+            }
+        } else {
+            // 🟢 Con sesión
+            if (requirePasswordChange) {
+                if (!isForceChangePage) {
+                    console.log("🔄 Redirigiendo a cambio forzoso...");
+                    router.replace('/(auth)/force-change-password');
+                }
+            } else {
+                // Si está en el login o en la raíz, mandarlo al dashboard
+                if (inAuthGroup || isForceChangePage || segments.length < 1) {
+                    console.log("🔄 Redirigiendo a Dashboard Home...");
+                    router.replace('/(dashboard)/home');
+                }
             }
         }
     }, [token, isLoading, segments, requirePasswordChange]);

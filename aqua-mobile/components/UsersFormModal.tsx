@@ -71,7 +71,7 @@ export default function UsersFormModal({
     return (
         <Modal visible={isOpen} animationType="fade" transparent={true}>
             <View style={styles.overlay}>
-                <View style={[styles.content, isWide && styles.contentWide]}>
+                <View style={[styles.content, isWide && styles.contentWide, { padding: isWide ? 32 : 20 }]}>
                     <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
                         <Ionicons name="close" size={24} color="#94a3b8" />
                     </TouchableOpacity>
@@ -90,6 +90,7 @@ export default function UsersFormModal({
                         showsVerticalScrollIndicator={true}
                         contentContainerStyle={{ paddingBottom: 10 }}
                         keyboardShouldPersistTaps="handled"
+                        style={{ flexGrow: 0, flexShrink: 1 }}
                     >
                         <View style={styles.fieldGroup}>
                             <Text style={styles.label}>Nombre completo</Text>
@@ -116,10 +117,10 @@ export default function UsersFormModal({
                         </View>
 
                         {/* Fila de Selectores Integrados */}
-                        <View style={[styles.row, { zIndex: 100 }]}>
+                        <View style={[isWide ? styles.row : styles.column, { zIndex: 100 }]}>
 
                             {/* Selector de Rol */}
-                            <View style={[styles.fieldGroup, { flex: 1, marginRight: 8, zIndex: showRolPicker ? 200 : 1 }]}>
+                            <View style={[styles.fieldGroup, { flex: isWide ? 1 : 0, width: isWide ? 'auto' : '100%', marginRight: isWide ? 8 : 0, zIndex: showRolPicker ? 200 : 1 }]}>
                                 <Text style={styles.label}>Rol</Text>
                                 <TouchableOpacity
                                     style={styles.pickerTrigger}
@@ -145,7 +146,7 @@ export default function UsersFormModal({
                             </View>
 
                             {/* Selector de Comunidad */}
-                            <View style={[styles.fieldGroup, { flex: 1, marginLeft: 8, zIndex: showTenantPicker ? 200 : 1 }]}>
+                            <View style={[styles.fieldGroup, { flex: isWide ? 1 : 0, width: isWide ? 'auto' : '100%', marginLeft: isWide ? 8 : 0, marginTop: isWide ? 0 : 12, zIndex: showTenantPicker ? 200 : 1 }]}>
                                 <Text style={styles.label}>Comunidad</Text>
                                 <TouchableOpacity
                                     style={styles.pickerTrigger}
@@ -227,17 +228,18 @@ export default function UsersFormModal({
 
 const styles = StyleSheet.create({
     overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(15, 23, 42, 0.85)', padding: 20 },
-    content: { backgroundColor: '#1e293b', padding: 32, borderRadius: 32, borderWidth: 1, borderColor: '#334155', width: '100%', maxHeight: '90%' },
+    content: { backgroundColor: '#1e293b', borderRadius: 32, borderWidth: 1, borderColor: '#334155', width: '100%', maxHeight: '90%' },
     contentWide: { maxWidth: 500 },
-    closeBtn: { position: 'absolute', top: 24, right: 24, padding: 8, zIndex: 10 },
-    header: { alignItems: 'center', marginBottom: 32 },
+    closeBtn: { position: 'absolute', top: 20, right: 20, padding: 8, zIndex: 10 },
+    header: { alignItems: 'center', marginBottom: 24 },
     iconContainer: { width: 64, height: 64, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-    title: { color: 'white', fontSize: 26, fontWeight: 'bold' },
-    subtitle: { color: '#94a3b8', fontSize: 14, textAlign: 'center', marginTop: 8 },
+    title: { color: 'white', fontSize: 24, fontWeight: 'bold' },
+    subtitle: { color: '#94a3b8', fontSize: 13, textAlign: 'center', marginTop: 8 },
     fieldGroup: { marginBottom: 20 },
     label: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold', marginBottom: 8, marginLeft: 4 },
     input: { backgroundColor: '#0f172a', color: 'white', padding: 16, borderRadius: 18, borderWidth: 1, borderColor: '#334155', fontSize: 16 },
     row: { flexDirection: 'row' },
+    column: { flexDirection: 'column' },
 
     pickerTrigger: { backgroundColor: '#0f172a', padding: 14, borderRadius: 18, borderWidth: 1, borderColor: '#334155', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     pickerText: { color: 'white', fontSize: 14, fontWeight: '600' },
