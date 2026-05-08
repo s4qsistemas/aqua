@@ -38,9 +38,10 @@ export default function TenantHistoryModal({ isOpen, onClose, data }: any) {
                   <div className="flex justify-between items-start mb-2">
                     <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase ${h.tipo === 'ACTIVACION' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                       h.tipo === 'DESACTIVACION' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                        h.tipo === 'CAMBIO_ADMIN' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' :
+                          'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                       }`}>
-                      {h.tipo}
+                      {h.tipo.replace('_', ' ')}
                     </span>
                     <span className="text-xs text-slate-400 font-medium">
                       {new Date(h.createdAt).toLocaleString()}

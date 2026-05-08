@@ -1,9 +1,11 @@
 import { Request, Response } from "express";
 import * as userService from "./user.service";
+import { io } from "../../server";
 
 export const registrarUsuario = async (req: Request, res: Response): Promise<void> => {
     try {
         const usuarioCreado = await userService.crearUsuario(req.body);
+        io.emit('comunidades_actualizadas');
         res.status(201).json(usuarioCreado);
     } catch (error: any) {
         res.status(400).json({ error: error.message });
@@ -14,6 +16,7 @@ export const actualizarUsuario = async (req: Request, res: Response): Promise<vo
     try {
         const id = parseInt(req.params.id as string);
         const usuarioActualizado = await userService.actualizarUsuario(id, req.body);
+        io.emit('comunidades_actualizadas');
         res.status(200).json(usuarioActualizado);
     } catch (error: any) {
         res.status(400).json({ error: error.message });

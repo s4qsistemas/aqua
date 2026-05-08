@@ -2,7 +2,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ⚠️ REEMPLAZA LA IP POR LA DE TU PC EN TU RED WIFI LOCAL (ej. 192.168.1.50)
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || "http://192.168.1.173:3000/api";
+const getApiBaseUrl = () => {
+    const defaultIP = "http://192.168.1.173:3000/api";
+    const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+
+    // Si estamos en la WEB y el hostname es localhost, usamos localhost
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        return "http://localhost:3000/api";
+    }
+
+    return envUrl || defaultIP;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     // 1. Obtener el token del almacenamiento seguro del teléfono (es asíncrono)

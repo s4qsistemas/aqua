@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
     Modal, TextInput, Alert, ActivityIndicator, ScrollView,
-    useWindowDimensions
+    useWindowDimensions, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { apiFetch } from '../../src/services/api';
 import UsersFormModal from '../UsersFormModal';
+import UserCascadingEditModal from '../UserCascadingEditModal';
 import { io } from 'socket.io-client';
 
 // 0. Define qué puede recibir
@@ -26,6 +27,7 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
     const [isLoading, setIsLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
     const [userModalVisible, setUserModalVisible] = useState(false);
+    const [cascadeModalVisible, setCascadeModalVisible] = useState(false);
     const [historyModalVisible, setHistoryModalVisible] = useState(false);
     const [historyEvents, setHistoryEvents] = useState<any[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,6 +39,7 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
     const [currentTenantUsers, setCurrentTenantUsers] = useState<any[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [selectedUser, setSelectedUser] = useState<any>(null);
+    const [modalTab, setModalTab] = useState<'GENERAL' | 'HISTORY'>('GENERAL');
 
     // 3. Lógica de red
     const cargarComunidades = async () => {
@@ -69,7 +72,16 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
 
     // Escuchar actualizaciones en tiempo real vía WebSocket
     useEffect(() => {
-        const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL || "http://192.168.1.173:3000/api";
+        const defaultIP = "http://192.168.1.173:3000/api";
+        const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+        
+        let apiBase = envUrl || defaultIP;
+        
+        // Ajuste dinámico para Web local
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            apiBase = "http://localhost:3000/api";
+        }
+
         const socketUrl = apiBase.replace('/api', '');
         const socket = io(socketUrl, { transports: ['websocket'] });
         socket.on('comunidades_actualizadas', () => cargarComunidades());
@@ -84,12 +96,17 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
         setAdminId(null);
         setCurrentTenantUsers([]);
         setShowPlanPicker(false);
+        setModalTab('GENERAL');
         setModalVisible(true);
     };
 
     const openUserManagement = () => {
         setSelectedUser(null);
         setUserModalVisible(true);
+    };
+
+    const openCascadeManagement = () => {
+        setCascadeModalVisible(true);
     };
 
     const openEditModal = (tenant: any) => {
@@ -103,7 +120,10 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
             setAdminId(null);
         }
         setShowAdminPicker(false);
+        setModalTab('GENERAL');
         setModalVisible(true);
+        // Cargar historial automáticamente al editar
+        openHistory(tenant.id, tenant.nombre, false);
     };
 
     const handleSave = async () => {
@@ -111,23 +131,35 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
             Alert.alert('Validación', 'El nombre es obligatorio');
             return;
         }
+        if (!editingId && !planId) {
+            Alert.alert('Validación', 'El plan es obligatorio');
+            return;
+        }
         setIsSubmitting(true);
         try {
             if (editingId) {
+                // Obtenemos el tenant actual para ver si el plan cambió
+                const tenantActual = listaComunidades.find(t => t.id === editingId);
+                const planHaCambiado = tenantActual && tenantActual.planId !== planId;
+
                 await apiFetch(`/tenants/${editingId}`, {
                     method: 'PUT',
-                    body: JSON.stringify({ nombre, adminId })
+                    body: JSON.stringify({ 
+                        nombre, 
+                        planId: planId ? Number(planId) : undefined, 
+                        adminId: adminId ? Number(adminId) : undefined,
+                        nota: planHaCambiado ? `Cambio de plan a ${planes.find(p => p.id === planId)?.nombre}` : "Actualización de información general"
+                    })
                 });
                 Alert.alert('Éxito', 'Comunidad actualizada correctamente');
             } else {
-                let finalPlanId = planId;
-                if (!finalPlanId) {
-                    const basico = planes.find(p => p.nombre.toLowerCase().includes('basico'));
-                    if (basico) finalPlanId = basico.id;
-                }
                 await apiFetch('/tenants', {
                     method: 'POST',
-                    body: JSON.stringify({ nombre, planId: finalPlanId ? Number(finalPlanId) : undefined, estado: 'ACTIVO' })
+                    body: JSON.stringify({ 
+                        nombre, 
+                        planId: planId ? Number(planId) : undefined, 
+                        estado: 'ACTIVO' 
+                    })
                 });
                 Alert.alert('Éxito', 'Comunidad creada correctamente');
             }
@@ -160,19 +192,25 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
     };
 
     const handleToggleUserStatus = (userId: number, nuevoEstado: string) => {
-        Alert.alert("Confirmar", "¿Seguro?", [
-            { text: "Cancelar", style: "cancel" },
-            {
-                text: "Confirmar", onPress: async () => {
-                    try {
-                        setIsSubmitting(true);
-                        await apiFetch(`/usuarios/${userId}/estado`, { method: 'PATCH', body: JSON.stringify({ estado: nuevoEstado }) });
-                        cargarComunidades();
-                        setUserModalVisible(false);
-                    } catch (e) { Alert.alert('Error', 'No se pudo cambiar el estado'); } finally { setIsSubmitting(false); }
-                }
+        const ejecutarCambio = async () => {
+            try {
+                setIsSubmitting(true);
+                await apiFetch(`/usuarios/${userId}/estado`, { method: 'PATCH', body: JSON.stringify({ estado: nuevoEstado }) });
+                cargarComunidades();
+                setUserModalVisible(false);
+            } catch (e) { Alert.alert('Error', 'No se pudo cambiar el estado'); } finally { setIsSubmitting(false); }
+        };
+
+        if (Platform.OS === 'web') {
+            if (window.confirm("¿Seguro que deseas cambiar el estado de este usuario?")) {
+                ejecutarCambio();
             }
-        ]);
+        } else {
+            Alert.alert("Confirmar", "¿Seguro que deseas cambiar el estado de este usuario?", [
+                { text: "Cancelar", style: "cancel" },
+                { text: "Confirmar", onPress: ejecutarCambio }
+            ]);
+        }
     };
 
     const handleResetUserPassword = async (userId: number) => {
@@ -182,58 +220,96 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
         } catch (e) { Alert.alert('Error', 'No se pudo resetear la clave'); }
     };
 
-    const openHistory = async (tenantId: string, tenantNombre: string) => {
+    const openHistory = async (tenantId: string, tenantNombre: string, showModal = true) => {
         try {
-            setIsLoading(true);
             const data = await apiFetch(`/tenants/${tenantId}/historial`);
             setHistoryEvents(data);
             setNombre(tenantNombre);
-            setHistoryModalVisible(true);
-        } catch (e) { Alert.alert("Error", "No se pudo cargar el historial."); } finally { setIsLoading(false); }
+            if (showModal) {
+                setModalTab('HISTORY');
+                setEditingId(tenantId);
+                setModalVisible(true);
+            }
+        } catch (e) { 
+            console.error("Error al cargar historial:", e);
+        }
     };
 
     const toggleStatus = (tenant: any) => {
         const nuevoEstado = tenant.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
-        Alert.alert("Confirmar", `¿Deseas cambiar el estado a ${nuevoEstado}?`, [
-            { text: "Cancelar", style: "cancel" },
-            {
-                text: "Confirmar", onPress: async () => {
-                    try {
-                        await apiFetch(`/tenants/${tenant.id}/estado`, { method: 'PATCH', body: JSON.stringify({ estado: nuevoEstado }) });
-                        cargarComunidades();
-                    } catch (e) { Alert.alert('Error', 'No se pudo cambiar el estado'); }
+        
+        const ejecutarCambio = async () => {
+            try {
+                await apiFetch(`/tenants/${tenant.id}/estado`, { 
+                    method: 'PATCH', 
+                    body: JSON.stringify({ 
+                        estado: nuevoEstado,
+                        nota: `Cambio de estado a ${nuevoEstado} por administrador`
+                    }) 
+                });
+                cargarComunidades();
+                if (modalVisible && editingId === tenant.id) {
+                    openHistory(tenant.id, tenant.nombre, false);
                 }
+            } catch (e) { Alert.alert('Error', 'No se pudo cambiar el estado'); }
+        };
+
+        if (Platform.OS === 'web') {
+            if (window.confirm(`¿Deseas cambiar el estado a ${nuevoEstado} para la comunidad ${tenant.nombre}?`)) {
+                ejecutarCambio();
             }
-        ]);
+        } else {
+            Alert.alert("Confirmar", `¿Deseas cambiar el estado a ${nuevoEstado}?`, [
+                { text: "Cancelar", style: "cancel" },
+                { text: "Confirmar", onPress: ejecutarCambio }
+            ]);
+        }
     };
 
-    const renderTenantItem = ({ item: t }: { item: any }) => (
-        <View style={[styles.tenantCard, isWide && styles.tenantCardWide]}>
-            <View style={styles.tenantHeader}>
-                <Text style={styles.tenantTitle}>{t.nombre}</Text>
-                <View style={[styles.statusBadge, t.estado === 'INACTIVO' && { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
-                    <Text style={[styles.statusText, t.estado === 'INACTIVO' && { color: '#ef4444' }]}>{t.estado || 'ACTIVO'}</Text>
+    const renderTenantItem = ({ item: t }: { item: any }) => {
+        const adminPrincipal = t.usuarios?.find((u: any) => u.isPrimary) || t.usuarios?.[0];
+        
+        return (
+            <View style={[styles.tenantCard, isWide && styles.tenantCardWide]}>
+                <View style={styles.tenantHeader}>
+                    <Text style={styles.tenantTitle}>{t.nombre}</Text>
+                    <View style={[styles.statusBadge, t.estado === 'INACTIVO' && { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
+                        <Text style={[styles.statusText, t.estado === 'INACTIVO' && { color: '#ef4444' }]}>{t.estado || 'ACTIVO'}</Text>
+                    </View>
+                </View>
+                <View style={styles.tenantInfo}>
+                    <View style={styles.infoRow}>
+                        <Ionicons name="person-outline" size={14} color="#94a3b8" />
+                        <Text style={styles.tenantAdmin}>{adminPrincipal?.nombre || 'Sin admin'}</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                        <Ionicons name="ribbon-outline" size={14} color="#3b82f6" />
+                        <Text style={styles.tenantPlan}>Plan: {t.plan?.nombre || "Básico"}</Text>
+                    </View>
+                </View>
+                <View style={styles.tenantActions}>
+                    <TouchableOpacity style={styles.iconBtn} onPress={() => openEditModal(t)}><Ionicons name="create-outline" size={20} color="#3b82f6" /></TouchableOpacity>
+                    <TouchableOpacity style={styles.iconBtn} onPress={() => toggleStatus(t)}><Ionicons name={t.estado === 'ACTIVO' ? "power" : "refresh-outline"} size={20} color={t.estado === 'ACTIVO' ? "#ef4444" : "#10b981"} /></TouchableOpacity>
+                    <TouchableOpacity style={styles.iconBtn} onPress={() => openHistory(t.id, t.nombre)}><Ionicons name="time-outline" size={20} color="#818cf8" /></TouchableOpacity>
                 </View>
             </View>
-            <View style={styles.tenantInfo}>
-                <View style={styles.infoRow}><Ionicons name="person-outline" size={14} color="#94a3b8" /><Text style={styles.tenantAdmin}>{t.usuarios?.[0]?.nombre || 'Sin admin'}</Text></View>
-                <View style={styles.infoRow}><Ionicons name="ribbon-outline" size={14} color="#3b82f6" /><Text style={styles.tenantPlan}>Plan: {t.plan?.nombre || "Básico"}</Text></View>
-            </View>
-            <View style={styles.tenantActions}>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => openEditModal(t)}><Ionicons name="create-outline" size={20} color="#3b82f6" /></TouchableOpacity>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => toggleStatus(t)}><Ionicons name={t.estado === 'ACTIVO' ? "power" : "refresh-outline"} size={20} color={t.estado === 'ACTIVO' ? "#ef4444" : "#10b981"} /></TouchableOpacity>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => openHistory(t.id, t.nombre)}><Ionicons name="time-outline" size={20} color="#818cf8" /></TouchableOpacity>
-            </View>
-        </View>
-    );
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container}>
             <View style={[styles.headerRow, isWide && styles.wideContainer]}>
                 <View style={{ flex: 1 }}><Text style={styles.title}>Gestión de <Text style={styles.highlight}>Comunidades</Text></Text></View>
                 <View style={styles.headerActions}>
+                    <TouchableOpacity 
+                        style={[styles.usersButton, { backgroundColor: 'rgba(56, 189, 248, 0.1)' }]} 
+                        onPress={openCascadeManagement}
+                    >
+                        <Ionicons name="create-outline" size={20} color="#38bdf8" />
+                    </TouchableOpacity>
+
                     <TouchableOpacity style={styles.usersButton} onPress={openUserManagement}>
-                        <Ionicons name="people-outline" size={20} color="#818cf8" /><Text style={styles.usersButtonText}>Usuarios</Text>
+                        <Ionicons name="people-outline" size={20} color="#818cf8" /><Text style={styles.usersButtonText}>Nuevo</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.fabButton} onPress={openCreateModal}><Ionicons name="add" size={24} color="white" /></TouchableOpacity>
                 </View>
@@ -266,26 +342,177 @@ export default function SuperAdminView({ user, tenants: externalTenants }: Props
                         <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
                             <Ionicons name="close" size={24} color="#94a3b8" />
                         </TouchableOpacity>
-                        <ScrollView showsVerticalScrollIndicator={false}>
+                        <ScrollView showsVerticalScrollIndicator={true}>
                             <View style={styles.modalHeader}>
                                 <View style={styles.iconContainer}><Ionicons name="business" size={32} color="#3b82f6" /></View>
-                                <Text style={styles.modalTitle}>{editingId ? 'Editar Comunidad' : 'Nueva Comunidad'}</Text>
+                                <Text style={styles.modalTitle}>{editingId ? 'Gestionar Comunidad' : 'Nueva Comunidad'}</Text>
                             </View>
-                            <View style={styles.fieldGroup}>
+
+                            {/* Selector de Pestañas (Solo en Edición) */}
+                            {editingId && (
+                                <View style={styles.tabContainer}>
+                                    <TouchableOpacity 
+                                        style={[styles.tab, modalTab === 'GENERAL' && styles.activeTab]} 
+                                        onPress={() => setModalTab('GENERAL')}
+                                    >
+                                        <Text style={[styles.tabText, modalTab === 'GENERAL' && styles.activeTabText]}>Información</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={[styles.tab, modalTab === 'HISTORY' && styles.activeTab]} 
+                                        onPress={() => setModalTab('HISTORY')}
+                                    >
+                                        <Text style={[styles.tabText, modalTab === 'HISTORY' && styles.activeTabText]}>Historial</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            {modalTab === 'GENERAL' ? (
+                                <>
+                                    <View style={styles.fieldGroup}>
                                 <Text style={styles.fieldLabel}>Nombre</Text>
-                                <TextInput style={styles.input} value={nombre} onChangeText={setNombre} />
+                                <TextInput style={styles.input} value={nombre} onChangeText={setNombre} placeholder="Nombre de la comunidad" placeholderTextColor="#64748b" />
                             </View>
+
+                            <View style={[styles.row, { zIndex: 100 }]}>
+                                {/* Selector de Plan */}
+                                <View style={[styles.fieldGroup, { flex: 1, marginRight: 8, zIndex: showPlanPicker ? 200 : 1 }]}>
+                                    <Text style={styles.fieldLabel}>Plan</Text>
+                                    <TouchableOpacity style={styles.pickerTrigger} onPress={() => { setShowPlanPicker(!showPlanPicker); setShowAdminPicker(false); }}>
+                                        <Text style={styles.pickerText}>{planes.find(p => p.id === planId)?.nombre || "Sel. Plan"}</Text>
+                                        <Ionicons name={showPlanPicker ? "chevron-up" : "chevron-down"} size={16} color="#64748b" />
+                                    </TouchableOpacity>
+                                    {showPlanPicker && (
+                                        <View style={styles.dropdownAbsolute}>
+                                            {planes.map(p => (
+                                                <TouchableOpacity key={p.id} style={styles.dropdownOption} onPress={() => { setPlanId(p.id); setShowPlanPicker(false); }}>
+                                                    <Text style={[styles.dropdownText, planId === p.id && { color: '#3b82f6' }]}>{p.nombre}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    )}
+                                </View>
+
+                                {/* Selector de Administrador (Solo en Edición) */}
+                                {editingId && (
+                                    <View style={[styles.fieldGroup, { flex: 1, marginLeft: 8, zIndex: showAdminPicker ? 200 : 1 }]}>
+                                        <Text style={styles.fieldLabel}>Administrador</Text>
+                                        <TouchableOpacity style={styles.pickerTrigger} onPress={() => { setShowAdminPicker(!showAdminPicker); setShowPlanPicker(false); }}>
+                                            <Text style={styles.pickerText} numberOfLines={1}>{currentTenantUsers.find(u => u.id === adminId)?.nombre || "Sin Admin"}</Text>
+                                            <Ionicons name={showAdminPicker ? "chevron-up" : "chevron-down"} size={16} color="#64748b" />
+                                        </TouchableOpacity>
+                                        {showAdminPicker && (
+                                            <View style={styles.dropdownAbsolute}>
+                                                <ScrollView style={{ maxHeight: 150 }} nestedScrollEnabled={true}>
+                                                    {currentTenantUsers.length === 0 ? (
+                                                        <Text style={styles.dropdownText}>No hay usuarios</Text>
+                                                    ) : (
+                                                        currentTenantUsers.map(u => (
+                                                            <TouchableOpacity key={u.id} style={styles.dropdownOption} onPress={() => { setAdminId(u.id); setShowAdminPicker(false); }}>
+                                                                <Text style={[styles.dropdownText, adminId === u.id && { color: '#3b82f6' }]}>{u.nombre}</Text>
+                                                            </TouchableOpacity>
+                                                        ))
+                                                    )}
+                                                </ScrollView>
+                                            </View>
+                                        )}
+                                    </View>
+                                )}
+                            </View>
+
+                            {/* Sección de Estado (Solo en Edición) */}
+                            {editingId && (
+                                <View style={styles.securitySection}>
+                                    <View style={styles.securityRow}>
+                                        <Text style={styles.securityLabel}>Estado de Comunidad</Text>
+                                        <TouchableOpacity 
+                                            onPress={() => toggleStatus(listaComunidades.find(t => t.id === editingId))}
+                                            style={[styles.securityBtn, listaComunidades.find(t => t.id === editingId)?.estado === 'ACTIVO' ? styles.btnDeactivate : styles.btnActivate]}
+                                        >
+                                            <Text style={[styles.securityBtnText, listaComunidades.find(t => t.id === editingId)?.estado === 'ACTIVO' ? { color: '#ef4444' } : { color: '#10b981' }]}>
+                                                {listaComunidades.find(t => t.id === editingId)?.estado === 'ACTIVO' ? "Desactivar" : "Activar"}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            )}
+                        </>
+                    ) : (
+                                <View style={styles.historyContainer}>
+                                    {historyEvents.length === 0 ? (
+                                        <View style={styles.emptyHistory}>
+                                            <Ionicons name="document-text-outline" size={48} color="#334155" />
+                                            <Text style={styles.emptyHistoryText}>No hay eventos registrados</Text>
+                                        </View>
+                                    ) : (
+                                        historyEvents.map((event, idx) => (
+                                            <View key={event.id || idx} style={styles.historyItem}>
+                                                <View style={styles.historyIconLine}>
+                                                    <View style={[
+                                                        styles.historyIcon, 
+                                                        { 
+                                                            backgroundColor: 
+                                                                event.tipo === 'CAMBIO_PLAN' ? 'rgba(59, 130, 246, 0.2)' : 
+                                                                event.tipo === 'CAMBIO_ADMIN' ? 'rgba(129, 140, 248, 0.2)' :
+                                                                'rgba(16, 185, 129, 0.2)' 
+                                                        }
+                                                    ]}>
+                                                        <Ionicons 
+                                                            name={
+                                                                event.tipo === 'CAMBIO_PLAN' ? "ribbon" : 
+                                                                event.tipo === 'CAMBIO_ADMIN' ? "person" :
+                                                                "power"
+                                                            } 
+                                                            size={16} 
+                                                            color={
+                                                                event.tipo === 'CAMBIO_PLAN' ? "#3b82f6" : 
+                                                                event.tipo === 'CAMBIO_ADMIN' ? "#818cf8" :
+                                                                "#10b981"
+                                                            } 
+                                                        />
+                                                    </View>
+                                                    {idx !== historyEvents.length - 1 && <View style={styles.historyLine} />}
+                                                </View>
+                                                <View style={styles.historyBody}>
+                                                    <Text style={styles.historyTitle}>
+                                                        {event.tipo === 'CAMBIO_PLAN' ? 'Cambio de Plan' : 
+                                                         event.tipo === 'CAMBIO_ADMIN' ? 'Cambio de Administrador' :
+                                                         event.tipo === 'ACTIVACION' ? 'Comunidad Activada' : 'Comunidad Desactivada'}
+                                                    </Text>
+                                                    <Text style={styles.historyDesc}>{event.nota || 'Sin detalles adicionales'}</Text>
+                                                    <View style={styles.historyMeta}>
+                                                        <Text style={styles.historyTime}>{new Date(event.createdAt).toLocaleDateString()} {new Date(event.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                                                        <Text style={styles.historyUser}>• {event.usuario?.nombre || 'Sistema'}</Text>
+                                                    </View>
+                                                </View>
+                                            </View>
+                                        ))
+                                    )}
+                                </View>
+                            )}
+                        </ScrollView>
+
+                        {modalTab === 'GENERAL' && (
                             <View style={styles.modalFooter}>
-                                <TouchableOpacity style={styles.btnConfirm} onPress={handleSave}>
-                                    <Text style={styles.btnConfirmText}>Guardar</Text>
+                                <TouchableOpacity style={[styles.btnConfirm, isSubmitting && { opacity: 0.7 }]} onPress={handleSave} disabled={isSubmitting}>
+                                    {isSubmitting ? <ActivityIndicator color="white" /> : <Text style={styles.btnConfirmText}>Guardar</Text>}
                                 </TouchableOpacity>
                             </View>
-                        </ScrollView>
+                        )}
                     </View>
                 </View>
             </Modal>
 
-            <UsersFormModal isOpen={userModalVisible} onClose={() => setUserModalVisible(false)} onConfirm={handleConfirmUserForm} tenants={listaComunidades} />
+            <UsersFormModal isOpen={userModalVisible} onClose={() => setUserModalVisible(false)} onConfirm={handleConfirmUserForm} tenants={listaComunidades} initialData={selectedUser} onToggleStatus={handleToggleUserStatus} onResetPassword={handleResetUserPassword} />
+            <UserCascadingEditModal 
+                isOpen={cascadeModalVisible} 
+                onClose={() => setCascadeModalVisible(false)} 
+                tenants={listaComunidades}
+                onEditUser={(u: any) => {
+                    setSelectedUser(u);
+                    setCascadeModalVisible(false);
+                    setUserModalVisible(true);
+                }}
+            />
         </SafeAreaView>
     );
 }
@@ -321,7 +548,7 @@ const styles = StyleSheet.create({
 
     // Estilos responsivos del Modal
     modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-    modalContent: { backgroundColor: '#1e293b', borderRadius: 32, padding: 32, borderWidth: 1, borderColor: '#334155', width: '100%' },
+    modalContent: { backgroundColor: '#1e293b', borderRadius: 32, padding: 32, borderWidth: 1, borderColor: '#334155', width: '100%', maxHeight: '90%' },
     modalContentWide: { maxWidth: 500 }, // Tope máximo para que no se estire en monitores grandes
 
     closeBtn: { position: 'absolute', top: 24, right: 24, zIndex: 10 },
@@ -331,7 +558,42 @@ const styles = StyleSheet.create({
     fieldGroup: { marginBottom: 24 },
     fieldLabel: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold', marginBottom: 10 },
     input: { backgroundColor: '#0f172a', color: 'white', padding: 16, borderRadius: 18, borderWidth: 1, borderColor: '#334155' },
+    row: { flexDirection: 'row', marginBottom: 16 },
+    pickerTrigger: { backgroundColor: '#0f172a', padding: 14, borderRadius: 18, borderWidth: 1, borderColor: '#334155', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    pickerText: { color: 'white', fontSize: 13, fontWeight: '600' },
+    dropdownAbsolute: { position: 'absolute', bottom: 55, left: 0, right: 0, backgroundColor: '#0f172a', borderRadius: 18, borderWidth: 1, borderColor: '#334155', overflow: 'hidden', elevation: 10, zIndex: 300 },
+    dropdownOption: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#1e293b' },
+    dropdownText: { color: '#94a3b8', fontSize: 13 },
+    securitySection: { padding: 16, backgroundColor: 'rgba(15, 23, 42, 0.5)', borderRadius: 20, marginTop: 10, borderWidth: 1, borderColor: '#334155' },
+    securityRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    securityLabel: { color: '#cbd5e1', fontSize: 13, fontWeight: 'bold' },
+    securityBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+    securityBtnText: { fontSize: 12, fontWeight: 'bold' },
+    btnDeactivate: { backgroundColor: 'rgba(239, 68, 68, 0.1)' },
+    btnActivate: { backgroundColor: 'rgba(16, 185, 129, 0.1)' },
     modalFooter: { marginTop: 16 },
+
+    // Estilos de Pestañas
+    tabContainer: { flexDirection: 'row', backgroundColor: '#0f172a', borderRadius: 16, padding: 4, marginBottom: 24 },
+    tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 12 },
+    activeTab: { backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155' },
+    tabText: { color: '#64748b', fontSize: 14, fontWeight: 'bold' },
+    activeTabText: { color: 'white' },
+
+    // Estilos de Historial
+    historyContainer: { paddingBottom: 20 },
+    emptyHistory: { alignItems: 'center', paddingVertical: 40 },
+    emptyHistoryText: { color: '#475569', marginTop: 12, fontSize: 14 },
+    historyItem: { flexDirection: 'row', gap: 16, marginBottom: 4 },
+    historyIconLine: { alignItems: 'center', width: 32 },
+    historyIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', zIndex: 1 },
+    historyLine: { flex: 1, width: 2, backgroundColor: '#334155', marginVertical: 4 },
+    historyBody: { flex: 1, paddingBottom: 24 },
+    historyTitle: { color: 'white', fontSize: 15, fontWeight: 'bold', marginBottom: 4 },
+    historyDesc: { color: '#94a3b8', fontSize: 13, lineHeight: 18, marginBottom: 8 },
+    historyMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    historyTime: { color: '#64748b', fontSize: 11 },
+    historyUser: { color: '#3b82f6', fontSize: 11, fontWeight: 'bold' },
     btnConfirm: { backgroundColor: '#2563eb', paddingVertical: 16, alignItems: 'center', borderRadius: 18 },
     btnConfirmText: { color: 'white', fontSize: 16, fontWeight: 'bold' }
 });

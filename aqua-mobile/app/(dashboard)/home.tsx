@@ -45,10 +45,16 @@ export default function MobileDashboard() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.topBar}>
-                <Text style={styles.logo}>AQUA</Text>
-                <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-                    <Ionicons name="log-out-outline" size={24} color="#ef4444" />
-                </TouchableOpacity>
+                <Text style={styles.logo}>
+                    aqua <Text style={styles.logoAccent}>Sync Pro</Text>
+                </Text>
+                
+                <View style={styles.userInfo}>
+                    <Text style={styles.userName}>{user?.nombre || "Usuario"}</Text>
+                    <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
+                        <Ionicons name="log-out-outline" size={24} color="#ef4444" />
+                    </TouchableOpacity>
+                </View>
             </View>
             {renderDashboard()}
         </SafeAreaView>
@@ -58,7 +64,34 @@ export default function MobileDashboard() {
 // ¡AQUÍ ESTÁ LO QUE FALTABA! Los estilos de la barra superior y el fondo
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0f172a' },
-    topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#1e293b' },
-    logo: { color: '#38bdf8', fontSize: 20, fontWeight: '900', letterSpacing: 2 },
+    topBar: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        paddingHorizontal: 24, 
+        paddingVertical: 16, 
+        borderBottomWidth: 1, 
+        borderBottomColor: '#1e293b' 
+    },
+    logo: { 
+        color: '#38bdf8', 
+        fontSize: 18, 
+        fontWeight: '900', 
+        letterSpacing: 1 
+    },
+    logoAccent: {
+        color: '#94a3b8',
+        fontWeight: '400'
+    },
+    userInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12
+    },
+    userName: {
+        color: '#94a3b8',
+        fontSize: 14,
+        fontWeight: '600'
+    },
     logoutBtn: { padding: 4 },
 });

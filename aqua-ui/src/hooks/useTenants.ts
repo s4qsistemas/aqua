@@ -18,6 +18,7 @@ export function useTenants() {
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [showFormModal, setShowFormModal] = useState(false);
     const [showUserModal, setShowUserModal] = useState(false);
+    const [showUserCascadeModal, setShowUserCascadeModal] = useState(false);
 
     const [isLoading, setIsLoading] = useState(true);
     const [credentialsAlert, setCredentialsAlert] = useState<{ email?: string, tempPassword?: string, title: string, message: string } | null>(null);
@@ -65,6 +66,7 @@ export function useTenants() {
 
     const onNewUser = () => { setSelectedUser(null); setShowUserModal(true); };
     const onEditUser = (user: any) => { setSelectedUser(user); setShowUserModal(true); };
+    const onManageUsers = () => { setShowUserCascadeModal(true); };
 
     const onEdit = (t: any) => {
         if (t.estado === "INACTIVO") {
@@ -192,7 +194,8 @@ export function useTenants() {
                 body: JSON.stringify({ estado: nuevoEstado })
             });
             await fetchTenants();
-            setShowUserModal(false); // Cierra el modal para refrescar
+            setShowUserModal(false); 
+            setShowUserCascadeModal(false); // También cerrar el de cascada si estaba abierto
         } catch (error: any) {
             alert("Error: " + error.message);
         }
@@ -206,7 +209,8 @@ export function useTenants() {
         selectedUser, onNewUser, onEditUser,
         showFormModal, setShowFormModal,
         showUserModal, setShowUserModal,
-        onNew, onEdit, onPlan, onStatus, onHistory,
+        showUserCascadeModal, setShowUserCascadeModal,
+        onNew, onEdit, onPlan, onStatus, onHistory, onManageUsers,
         handleConfirmStatus, handleConfirmPlan, handleConfirmForm, handleConfirmUserForm, handleResetUserPassword, handleToggleUserStatus,
         credentialsAlert, setCredentialsAlert,
         fetchTenants // <-- Exportamos la función de recarga

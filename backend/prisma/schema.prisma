@@ -80,6 +80,7 @@ enum TipoHistorialTenant {
   ACTIVACION
   DESACTIVACION
   CAMBIO_PLAN
+  CAMBIO_ADMIN
 }
 
 //////////////////////////////////////////////////////

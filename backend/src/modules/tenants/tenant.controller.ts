@@ -28,6 +28,10 @@ export async function crearTenant(req: Request, res: Response) {
             return res.status(400).json({ message: "El nombre es obligatorio" });
         }
 
+        if (!planId) {
+            return res.status(400).json({ message: "El plan es obligatorio" });
+        }
+
         const tenant = await crearTenantService(nombre, planId);
         
         // Notificar a los clientes vía WebSocket
@@ -55,8 +59,8 @@ export async function obtenerTenant(req: Request, res: Response) {
 
 export async function actualizarTenant(req: Request, res: Response) {
     try {
-        const { nombre, planId, adminId } = req.body;
-        const tenant = await actualizarTenantService(Number(req.params.id), nombre, planId, adminId);
+        const { nombre, planId, adminId, nota } = req.body;
+        const tenant = await actualizarTenantService(Number(req.params.id), nombre, planId, adminId, nota);
         
         // Notificar a los clientes vía WebSocket
         io.emit('comunidades_actualizadas');

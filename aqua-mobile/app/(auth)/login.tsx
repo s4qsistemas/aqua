@@ -42,7 +42,7 @@ export default function LoginPage() {
                     <View style={styles.logoIcon}>
                         <Ionicons name="water" size={32} color="#38bdf8" />
                     </View>
-                    <Text style={styles.title}>AQUA <Text style={styles.highlight}>SYNC</Text></Text>
+                    <Text style={styles.title}>aqua <Text style={styles.highlight}>Sync Pro</Text></Text>
                     <Text style={styles.subtitle}>Gestión inteligente de recursos hídricos</Text>
                 </View>
 

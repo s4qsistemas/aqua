@@ -1,21 +1,52 @@
 import { useAuth } from "../context/AuthContext";
+import { useTenants } from "../hooks/useTenants";
 import Navbar from "../components/Navbar";
+import UsersFormModal from "../components/UsersFormModal";
+import UserCascadingEditModal from "../components/UserCascadingEditModal";
+import CredentialsAlertModal from "../components/CredentialsAlertModal";
+import { IconUsers, IconEdit } from "../components/Icons";
 
 export default function AdminDashboardPage() {
     const { user } = useAuth();
+    const {
+        tenants, 
+        showUserModal, setShowUserModal,
+        showUserCascadeModal, setShowUserCascadeModal,
+        onNewUser, onManageUsers,
+        handleConfirmUserForm, handleResetUserPassword, handleToggleUserStatus,
+        credentialsAlert, setCredentialsAlert
+    } = useTenants();
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
             <Navbar />
 
             <div className="pt-24 px-8 max-w-7xl mx-auto">
-                <header className="mb-8">
-                    <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                        Panel de <span className="gradient-text">Control</span>
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-2">
-                        Bienvenido, administrador de <b>{user?.tenant?.nombre || "tu comunidad"}</b>.
-                    </p>
+                <header className="mb-8 flex justify-between items-end">
+                    <div>
+                        <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                            Panel de <span className="gradient-text">Control</span>
+                        </h1>
+                        <p className="text-slate-500 dark:text-slate-400 mt-2">
+                            Bienvenido, administrador de <b>{user?.tenant?.nombre || "tu comunidad"}</b>.
+                        </p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                        <button
+                            onClick={onManageUsers}
+                            className="flex items-center space-x-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 px-6 py-3 rounded-2xl hover:bg-slate-50 transition-all font-bold border border-slate-200 dark:border-slate-800 shadow-sm"
+                        >
+                            <IconEdit />
+                            <span>Editar Equipo</span>
+                        </button>
+                        <button
+                            onClick={onNewUser}
+                            className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all"
+                        >
+                            <IconUsers />
+                            <span>Añadir Miembro</span>
+                        </button>
+                    </div>
                 </header>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -54,6 +85,29 @@ export default function AdminDashboardPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Modales de Gestión de Usuarios */}
+            <UsersFormModal 
+                isOpen={showUserModal} 
+                onClose={() => setShowUserModal(false)} 
+                onConfirm={handleConfirmUserForm} 
+                tenants={tenants} 
+                onToggleStatus={handleToggleUserStatus} 
+                onResetPassword={handleResetUserPassword} 
+            />
+            <UserCascadingEditModal 
+                isOpen={showUserCascadeModal} 
+                onClose={() => setShowUserCascadeModal(false)} 
+                tenants={tenants} 
+                onConfirm={handleConfirmUserForm} 
+                onToggleStatus={handleToggleUserStatus} 
+                onResetPassword={handleResetUserPassword} 
+            />
+            <CredentialsAlertModal 
+                isOpen={!!credentialsAlert} 
+                onClose={() => setCredentialsAlert(null)} 
+                data={credentialsAlert} 
+            />
         </div>
     );
 }

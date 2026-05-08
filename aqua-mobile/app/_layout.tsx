@@ -8,7 +8,7 @@ import { ThemeProvider } from '../src/context/ThemeContext';
 
 // Este sub-componente actúa como el "guardia de seguridad"
 function RootNavigation() {
-    const { token, isLoading } = useAuth();
+    const { token, isLoading, requirePasswordChange } = useAuth();
     const segments = useSegments();
     const router = useRouter();
 
@@ -18,15 +18,21 @@ function RootNavigation() {
 
         // Detectamos si el usuario está intentando acceder a una pantalla de la carpeta (auth)
         const inAuthGroup = segments[0] === '(auth)';
+        const isForceChangePage = segments[1] === 'force-change-password';
 
         if (!token && !inAuthGroup) {
             // 🔴 No tiene sesión y no está en el login -> Expulsar al Login
             router.replace('/(auth)/login');
-        } else if (token && inAuthGroup) {
-            // 🟢 Tiene sesión y está en el login -> Redirigir a su Dashboard
-            router.replace('/(dashboard)/home');
+        } else if (token) {
+            // 🟡 Tiene sesión. ¿Debe cambiar la clave?
+            if (requirePasswordChange && !isForceChangePage) {
+                router.replace('/(auth)/force-change-password');
+            } else if (!requirePasswordChange && (inAuthGroup || isForceChangePage)) {
+                // 🟢 Ya está listo -> Redirigir a su Dashboard
+                router.replace('/(dashboard)/home');
+            }
         }
-    }, [token, isLoading, segments]);
+    }, [token, isLoading, segments, requirePasswordChange]);
 
     // Pantalla de carga mientras se lee el token del teléfono
     if (isLoading) {

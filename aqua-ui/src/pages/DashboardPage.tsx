@@ -6,6 +6,7 @@ import TenantPlanModal from "../components/TenantPlanModal";
 import TenantHistoryModal from "../components/TenantHistoryModal";
 import TenantFormModal from "../components/TenantFormModal";
 import UsersFormModal from "../components/UsersFormModal";
+import UserCascadingEditModal from "../components/UserCascadingEditModal";
 import CredentialsAlertModal from "../components/CredentialsAlertModal";
 import { useAuth } from "../context/AuthContext";
 import { useTenants } from "../hooks/useTenants";
@@ -25,7 +26,8 @@ export default function DashboardPage() {
     selectedUser, onNewUser, onEditUser,
     showFormModal, setShowFormModal,
     showUserModal, setShowUserModal,
-    onNew, onEdit, onPlan, onStatus, onHistory,
+    showUserCascadeModal, setShowUserCascadeModal,
+    onNew, onEdit, onPlan, onStatus, onHistory, onManageUsers,
     handleConfirmStatus, handleConfirmPlan,
     handleConfirmForm, handleConfirmUserForm,
     handleResetUserPassword, handleToggleUserStatus,
@@ -69,13 +71,22 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center space-x-3">
             {isSuperAdmin && (
-              <button
-                onClick={onNewUser}
-                className="flex items-center space-x-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 px-6 py-3 rounded-2xl hover:bg-indigo-100 transition-all font-bold"
-              >
-                <IconUsers />
-                <span>Usuarios</span>
-              </button>
+              <>
+                <button
+                  onClick={onManageUsers}
+                  className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-6 py-3 rounded-2xl hover:bg-slate-200 transition-all font-bold"
+                >
+                  <IconEdit />
+                  <span>Editar Usuarios</span>
+                </button>
+                <button
+                  onClick={onNewUser}
+                  className="flex items-center space-x-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 px-6 py-3 rounded-2xl hover:bg-indigo-100 transition-all font-bold"
+                >
+                  <IconUsers />
+                  <span>Usuarios</span>
+                </button>
+              </>
             )}
             <button
               onClick={onNew}
@@ -195,6 +206,7 @@ export default function DashboardPage() {
       <TenantHistoryModal isOpen={showHistoryModal} onClose={() => setShowHistoryModal(false)} data={historial} />
       <TenantFormModal isOpen={showFormModal} onClose={() => setShowFormModal(false)} onConfirm={handleConfirmForm} initialData={selectedTenant} plans={planes} />
       <UsersFormModal isOpen={showUserModal} onClose={() => setShowUserModal(false)} onConfirm={handleConfirmUserForm} tenants={tenants} initialData={selectedUser} onToggleStatus={handleToggleUserStatus} onResetPassword={handleResetUserPassword} />
+      <UserCascadingEditModal isOpen={showUserCascadeModal} onClose={() => setShowUserCascadeModal(false)} tenants={tenants} onConfirm={handleConfirmUserForm} onToggleStatus={handleToggleUserStatus} onResetPassword={handleResetUserPassword} />
       <CredentialsAlertModal isOpen={!!credentialsAlert} onClose={() => setCredentialsAlert(null)} data={credentialsAlert} />
     </div>
   );

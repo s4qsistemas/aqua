@@ -9,7 +9,7 @@ if (!process.env.JWT_SECRET) {
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const DEFAULT_TEMP_PASSWORD = process.env.DEFAULT_TEMP_PASSWORD || "AquaTemporal2026!";
+const getTempPassword = () => (process.env.DEFAULT_TEMP_PASSWORD || "AquaTemporal2026!").trim();
 
 export const login = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -51,8 +51,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        // Detectar si está usando la contraseña genérica
-        const isTempPassword = password === DEFAULT_TEMP_PASSWORD;
+        // Detectar si está usando la contraseña genérica (comparando hashes para máxima seguridad)
+        const isTempPassword = await bcrypt.compare(getTempPassword(), usuario.passwordHash);
 
         const token = jwt.sign(
             {
@@ -137,7 +137,14 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
         }
 
         const { passwordHash, ...userWithoutPassword } = usuario;
-        res.status(200).json(userWithoutPassword);
+        
+        // También verificamos aquí por si acaso el usuario ya tiene sesión pero su clave fue reseteada
+        const isTempPassword = await bcrypt.compare(getTempPassword(), usuario.passwordHash);
+        
+        res.status(200).json({
+            ...userWithoutPassword,
+            requirePasswordChange: isTempPassword
+        });
 
     } catch (error) {
         console.error("Error en getMe:", error);

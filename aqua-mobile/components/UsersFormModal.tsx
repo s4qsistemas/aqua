@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, Modal, TextInput,
-    TouchableOpacity, ScrollView, Alert
+    TouchableOpacity, ScrollView, Alert, useWindowDimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,6 +18,9 @@ interface Props {
 export default function UsersFormModal({
     isOpen, onClose, onConfirm, tenants, initialData, onToggleStatus, onResetPassword
 }: Props) {
+    const { width } = useWindowDimensions();
+    const isWide = width > 768;
+
     const [formData, setFormData] = useState({
         nombre: "",
         email: "",
@@ -48,8 +51,9 @@ export default function UsersFormModal({
     }, [isOpen, initialData]);
 
     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
-    const canSave = formData.nombre.trim() !== "" && formData.tenantId !== "" && isEmailValid;
+    const canSave = formData.nombre.trim() !== "" && formData.tenantId !== "" && isEmailValid && formData.rol !== "SUPERADMIN";
 
+    // Solo permitimos roles operativos desde la App
     const roles = ["ADMIN", "SUPERVISOR", "TECNICO"];
 
     const handleSave = () => {
@@ -67,7 +71,7 @@ export default function UsersFormModal({
     return (
         <Modal visible={isOpen} animationType="fade" transparent={true}>
             <View style={styles.overlay}>
-                <View style={styles.content}>
+                <View style={[styles.content, isWide && styles.contentWide]}>
                     <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
                         <Ionicons name="close" size={24} color="#94a3b8" />
                     </TouchableOpacity>
@@ -83,9 +87,9 @@ export default function UsersFormModal({
                     </View>
 
                     <ScrollView
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 20 }}
-                        keyboardShouldPersistTaps="handled" // Agregado para que los clics no fallen
+                        showsVerticalScrollIndicator={true}
+                        contentContainerStyle={{ paddingBottom: 10 }}
+                        keyboardShouldPersistTaps="handled"
                     >
                         <View style={styles.fieldGroup}>
                             <Text style={styles.label}>Nombre completo</Text>
@@ -199,22 +203,22 @@ export default function UsersFormModal({
                                 </View>
                             </View>
                         )}
-
-                        <View style={styles.footer}>
-                            <TouchableOpacity style={styles.btnCancel} onPress={onClose}>
-                                <Text style={styles.btnCancelText}>Cancelar</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.btnConfirm, !canSave && { backgroundColor: '#334155' }]}
-                                onPress={handleSave}
-                            >
-                                <Text style={[styles.btnConfirmText, !canSave && { color: '#64748b' }]}>
-                                    {isEditing ? "Guardar" : "Crear Usuario"}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
                     </ScrollView>
+
+                    <View style={styles.footer}>
+                        <TouchableOpacity style={styles.btnCancel} onPress={onClose}>
+                            <Text style={styles.btnCancelText}>Cancelar</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.btnConfirm, !canSave && { backgroundColor: '#334155' }]}
+                            onPress={handleSave}
+                        >
+                            <Text style={[styles.btnConfirmText, !canSave && { color: '#64748b' }]}>
+                                {isEditing ? "Guardar" : "Crear Usuario"}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
         </Modal>
@@ -222,8 +226,9 @@ export default function UsersFormModal({
 }
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(15, 23, 42, 0.85)', padding: 20 },
-    content: { backgroundColor: '#1e293b', padding: 32, borderRadius: 32, borderWidth: 1, borderColor: '#334155', maxHeight: '90%' },
+    overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(15, 23, 42, 0.85)', padding: 20 },
+    content: { backgroundColor: '#1e293b', padding: 32, borderRadius: 32, borderWidth: 1, borderColor: '#334155', width: '100%', maxHeight: '90%' },
+    contentWide: { maxWidth: 500 },
     closeBtn: { position: 'absolute', top: 24, right: 24, padding: 8, zIndex: 10 },
     header: { alignItems: 'center', marginBottom: 32 },
     iconContainer: { width: 64, height: 64, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
@@ -238,7 +243,7 @@ const styles = StyleSheet.create({
     pickerText: { color: 'white', fontSize: 14, fontWeight: '600' },
 
     // Novedad: Dropdown pegado y flotante
-    dropdownAbsolute: { position: 'absolute', top: 76, left: 0, right: 0, backgroundColor: '#0f172a', borderRadius: 18, borderWidth: 1, borderColor: '#334155', overflow: 'hidden', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5 },
+    dropdownAbsolute: { position: 'absolute', bottom: 55, left: 0, right: 0, backgroundColor: '#0f172a', borderRadius: 18, borderWidth: 1, borderColor: '#334155', overflow: 'hidden', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 5 },
     dropdownOption: { padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#1e293b' },
     dropdownText: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
 
